@@ -1,0 +1,102 @@
+
+import React, { useState, useMemo } from 'react';
+import { useCars } from '../../context/CarContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
+import CarCard from '../components/CarCard';
+
+const Inventory: React.FC = () => {
+  const { cars } = useCars();
+  const { config } = useSiteConfig();
+  const [filter, setFilter] = useState({
+    type: 'All',
+    make: 'All',
+    listingType: 'All',
+    sort: 'newest'
+  });
+
+  const filteredCars = useMemo(() => {
+    let result = cars.filter(car => {
+      const matchType = filter.type === 'All' || car.type === filter.type;
+      const matchMake = filter.make === 'All' || car.make === filter.make;
+      const matchListingType = filter.listingType === 'All' || car.listingType === filter.listingType;
+      return matchType && matchMake && matchListingType;
+    });
+
+    if (filter.sort === 'price-low') result.sort((a, b) => a.price - b.price);
+    if (filter.sort === 'price-high') result.sort((a, b) => b.price - a.price);
+    
+    return result;
+  }, [cars, filter]);
+
+  const types = ['All', 'Luxury', 'Sports', 'SUV', 'Classic'];
+  const serviceOptions = [
+    { label: 'All Services', value: 'All' },
+    { label: 'Buy New', value: 'New' },
+    { label: 'Buy Old', value: 'Used' },
+    { label: 'Rent', value: 'Rent' }
+  ];
+
+  return (
+    <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-12">
+          <h1 className="text-4xl font-bold mb-4 uppercase tracking-tighter">{config.inventoryPage.title}</h1>
+          <p className="text-zinc-500">{config.inventoryPage.description}</p>
+        </div>
+
+        <div className="glass p-6 rounded-2xl mb-12 flex flex-col md:flex-row gap-6 items-center justify-between">
+          <div className="flex flex-wrap gap-4 w-full md:w-auto">
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Service</label>
+              <select 
+                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
+                value={filter.listingType}
+                onChange={e => setFilter({ ...filter, listingType: e.target.value })}
+              >
+                {serviceOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Category</label>
+              <select 
+                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
+                value={filter.type}
+                onChange={e => setFilter({ ...filter, type: e.target.value })}
+              >
+                {types.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-2 w-full md:w-auto">
+            <label className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Sort By</label>
+            <select 
+              className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
+              value={filter.sort}
+              onChange={e => setFilter({ ...filter, sort: e.target.value })}
+            >
+              <option value="newest">Newest First</option>
+              <option value="price-low">Price: Low to High</option>
+              <option value="price-high">Price: High to Low</option>
+            </select>
+          </div>
+        </div>
+
+        {filteredCars.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredCars.map(car => (
+              <CarCard key={car.id} car={car} />
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-20 glass rounded-3xl">
+            <h3 className="text-xl text-zinc-400">No vehicles match your criteria.</h3>
+            <button onClick={() => setFilter({ type: 'All', make: 'All', listingType: 'All', sort: 'newest' })} className="mt-4 text-white underline">Clear all filters</button>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
+export default Inventory;

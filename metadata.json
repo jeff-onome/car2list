@@ -1,0 +1,7 @@
+{
+  "name": "AutoSphere Premium",
+  "description": "A high-end luxury car marketplace featuring 3D visualizations, AI-driven concierge, and comprehensive dealer management.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}

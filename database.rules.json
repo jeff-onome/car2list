@@ -1,0 +1,27 @@
+
+{
+  "rules": {
+    "cars": {
+      ".read": true,
+      ".write": "auth != null && (root.child('users').child(auth.uid).child('role').val() === 'ADMIN' || root.child('users').child(auth.uid).child('role').val() === 'DEALER')",
+      ".indexOn": [
+        "dealerId",
+        "isFeatured",
+        "type",
+        "listingType",
+        "createdAt"
+      ]
+    },
+    "users": {
+      ".read": true,
+      ".write": "auth != null",
+      "$user_id": {
+        ".indexOn": ["email", "role"]
+      }
+    },
+    "config": {
+      ".read": true,
+      ".write": "auth != null && root.child('users').child(auth.uid).child('role').val() === 'ADMIN'"
+    }
+  }
+}
