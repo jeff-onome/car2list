@@ -70,8 +70,8 @@ const Login: React.FC = () => {
       // 4. Authenticate session
       login(foundUser.role, foundUser);
       
-      // 5. Determine destination
-      let target = '/user/profile';
+      // 5. Determine destination - Both USER and DEALER now go to Overview/Dashboard
+      let target = '/user/overview';
       if (foundUser.role === 'ADMIN') target = '/admin/dashboard';
       if (foundUser.role === 'DEALER') target = '/dealer/dashboard';
 

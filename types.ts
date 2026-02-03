@@ -10,6 +10,15 @@ export interface User {
   isVerified: boolean;
   isSuspended?: boolean;
   joinedAt: string;
+  password?: string; // Stored for the sake of this mock implementation
+  // Added optional fields for identity verification status and documents
+  kycStatus?: 'pending' | 'approved' | 'rejected';
+  kycDocuments?: {
+    front: string;
+    back: string;
+    selfie: string;
+    submittedAt: string;
+  };
 }
 
 export interface Car {

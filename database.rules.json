@@ -1,4 +1,3 @@
-
 {
   "rules": {
     "cars": {
@@ -20,6 +19,18 @@
       }
     },
     "config": {
+      ".read": true,
+      ".write": true
+    },
+    "notifications": {
+      ".read": true,
+      ".write": true
+    },
+    "purchases": {
+      ".read": true,
+      ".write": true
+    },
+    "bookings": {
       ".read": true,
       ".write": true
     }

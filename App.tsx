@@ -23,6 +23,7 @@ import Register from './auth/Register';
 import RegistrationSuccess from './auth/RegistrationSuccess';
 
 // User Portal
+import Overview from './user/pages/Overview';
 import UserProfile from './user/pages/UserProfile';
 import Garage from './user/pages/Garage';
 import Compare from './user/pages/Compare';
@@ -42,6 +43,9 @@ import AddUser from './superadmin/pages/AddUser';
 import AdminManageListings from './superadmin/pages/ManageListings';
 import SiteCMS from './superadmin/pages/SiteCMS';
 import DealOfTheWeekAdmin from './superadmin/pages/DealOfTheWeek';
+
+// Common
+import Security from './common/pages/Security';
 
 // Components
 import Header from './components/Header';
@@ -80,13 +84,15 @@ const App: React.FC = () => {
                     <Route path="/user/*" element={
                       <PortalLayout>
                         <Routes>
+                          <Route path="overview" element={<Overview />} />
                           <Route path="profile" element={<UserProfile />} />
+                          <Route path="security" element={<Security />} />
                           <Route path="garage" element={<Garage />} />
                           <Route path="compare" element={<Compare />} />
                           <Route path="verify" element={<Verification />} />
                           <Route path="test-drives" element={<TestDrives />} />
                           <Route path="purchases" element={<Purchases />} />
-                          <Route path="*" element={<Navigate to="profile" replace />} />
+                          <Route path="*" element={<Navigate to="overview" replace />} />
                         </Routes>
                       </PortalLayout>
                     } />
@@ -97,7 +103,9 @@ const App: React.FC = () => {
                         <Routes>
                           <Route path="dashboard" element={<DealerDashboard />} />
                           <Route path="listings" element={<ManageListingsDealer />} />
+                          <Route path="security" element={<Security />} />
                           <Route path="add-car" element={<AddCar />} />
+                          <Route path="verify" element={<Verification />} />
                           <Route path="*" element={<Navigate to="dashboard" replace />} />
                         </Routes>
                       </PortalLayout>
@@ -109,6 +117,7 @@ const App: React.FC = () => {
                         <Routes>
                           <Route path="dashboard" element={<AdminDashboard />} />
                           <Route path="users" element={<ManageUsers />} />
+                          <Route path="security" element={<Security />} />
                           <Route path="add-user" element={<AddUser />} />
                           <Route path="listings" element={<AdminManageListings />} />
                           <Route path="deal" element={<DealOfTheWeekAdmin />} />

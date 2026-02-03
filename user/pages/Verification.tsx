@@ -1,24 +1,180 @@
 
-import React from 'react';
+import React, { useState } from 'react';
+import { useAuth } from '../../context/AuthContext';
+import { storageService } from '../../services/storage';
+import { dbService } from '../../services/database';
+import Swal from 'https://esm.sh/sweetalert2@11';
+import { useNavigate } from 'react-router-dom';
 
 const Verification: React.FC = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  const [step, setStep] = useState(1);
+  const [isUploading, setIsUploading] = useState(false);
+  const [kycData, setKycData] = useState<{
+    idFront?: { file: File, preview: string },
+    idBack?: { file: File, preview: string },
+    selfie?: { file: File, preview: string }
+  }>({});
+
+  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: keyof typeof kycData) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setKycData(prev => ({
+          ...prev,
+          [type]: { file, preview: reader.result as string }
+        }));
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const submitKYC = async () => {
+    if (!kycData.idFront || !kycData.idBack || !kycData.selfie || !user) return;
+
+    setIsUploading(true);
+    try {
+      // 1. Upload assets to Supabase
+      const frontUrl = await storageService.uploadImage(kycData.idFront.file);
+      const backUrl = await storageService.uploadImage(kycData.idBack.file);
+      const selfieUrl = await storageService.uploadImage(kycData.selfie.file);
+
+      // 2. Update user document with KYC data
+      await dbService.updateUser(user.id, {
+        kycStatus: 'pending',
+        kycDocuments: {
+          front: frontUrl,
+          back: backUrl,
+          selfie: selfieUrl,
+          submittedAt: new Date().toISOString()
+        }
+      });
+
+      // 3. Notify system log
+      await dbService.createNotification(user.id, {
+        title: 'KYC Documents Received',
+        message: 'Your identification assets have been uploaded for administrative review.',
+        type: 'info'
+      });
+
+      Swal.fire({
+        title: 'Documents Locked',
+        text: 'Your application has been queued for review. You will be notified within 24-48 hours.',
+        icon: 'success',
+        background: '#0a0a0a',
+        color: '#fff',
+        confirmButtonColor: '#fff'
+      }).then(() => {
+        const path = user.role === 'DEALER' ? '/dealer/dashboard' : '/user/overview';
+        navigate(path);
+      });
+
+    } catch (error) {
+      console.error(error);
+      Swal.fire('Upload Failed', 'There was an error synchronizing your documents.', 'error');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  if (user?.isVerified) {
+    return (
+      <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6 flex items-center justify-center">
+        <div className="text-center space-y-6 max-w-md glass p-12 rounded-[3rem] border-white/5">
+           <div className="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
+           </div>
+           <h1 className="text-3xl font-bold uppercase tracking-tighter">Cleared for Access</h1>
+           <p className="text-zinc-500 text-xs uppercase tracking-widest leading-relaxed">Your identity has been verified at the highest tier. No further action is required.</p>
+           <button onClick={() => navigate(-1)} className="bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest w-full">Return to Portal</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6">
       <div className="max-w-2xl mx-auto space-y-12">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl font-bold uppercase tracking-tighter">KYC Verification</h1>
-          <p className="text-zinc-500 text-sm">Required for all high-value transactions and private bidding.</p>
-        </div>
+        <header className="text-center space-y-4">
+          <h1 className="text-4xl font-bold uppercase tracking-tighter">Identity Clearance</h1>
+          <p className="text-zinc-500 text-[10px] uppercase tracking-widest">Global KYC Protocol • Tier 3 Security Required</p>
+        </header>
 
-        <div className="glass p-8 md:p-12 rounded-3xl space-y-8">
-          <Step num={1} title="Identity Document" desc="Upload a clear scan of your passport or government ID." completed />
-          <Step num={2} title="Proof of Residency" desc="Recent utility bill or bank statement (issued within 3 months)." active />
-          <Step num={3} title="Financial Capability" desc="Optional: Expedites high-value purchase approvals." />
+        <div className="glass p-8 md:p-12 rounded-[3rem] space-y-10 shadow-2xl relative overflow-hidden">
+          <div className="flex justify-between items-center relative z-10">
+             {[1, 2, 3].map(s => (
+               <div key={s} className="flex flex-col items-center gap-2">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-bold transition-all ${step >= s ? 'bg-white border-white text-black' : 'border-white/10 text-zinc-700'}`}>
+                    {s}
+                  </div>
+                  <span className={`text-[8px] uppercase tracking-widest font-bold ${step === s ? 'text-white' : 'text-zinc-700'}`}>
+                    {s === 1 ? 'ID FRONT' : s === 2 ? 'ID BACK' : 'SELFIE'}
+                  </span>
+               </div>
+             ))}
+             <div className="absolute top-5 left-10 right-10 h-0.5 bg-white/5 -z-10" />
+          </div>
 
-          <div className="pt-8 border-t border-white/5">
-            <button className="w-full bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all">
-              Continue to Step 2
-            </button>
+          <div className="space-y-8 animate-in fade-in slide-in-from-bottom-4">
+            {step === 1 && (
+              <UploadCard 
+                title="Government ID (Front)" 
+                desc="Please provide a high-resolution scan of your passport or national identity card's primary surface." 
+                preview={kycData.idFront?.preview}
+                onFile={(e) => handleFileUpload(e, 'idFront')}
+              />
+            )}
+            {step === 2 && (
+              <UploadCard 
+                title="Government ID (Back)" 
+                desc="Required for residency validation and unique security identifier confirmation." 
+                preview={kycData.idBack?.preview}
+                onFile={(e) => handleFileUpload(e, 'idBack')}
+              />
+            )}
+            {step === 3 && (
+              <UploadCard 
+                title="Live Verification Selfie" 
+                desc="A clear photograph of your face. Ensure adequate lighting and no accessories obscuring your identity." 
+                preview={kycData.selfie?.preview}
+                onFile={(e) => handleFileUpload(e, 'selfie')}
+              />
+            )}
+          </div>
+
+          <div className="flex gap-4 pt-8">
+            {step > 1 && (
+              <button 
+                onClick={() => setStep(step - 1)}
+                className="flex-grow border border-white/10 py-4 rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-white/5 transition-all"
+              >
+                Previous Stage
+              </button>
+            )}
+            {step < 3 ? (
+              <button 
+                disabled={(!kycData.idFront && step === 1) || (!kycData.idBack && step === 2)}
+                onClick={() => setStep(step + 1)}
+                className="flex-grow bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-zinc-200 transition-all shadow-xl disabled:opacity-30"
+              >
+                Next Stage
+              </button>
+            ) : (
+              <button 
+                onClick={submitKYC}
+                disabled={isUploading || !kycData.selfie}
+                className="flex-grow bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-zinc-200 transition-all shadow-xl flex items-center justify-center gap-2 disabled:opacity-30"
+              >
+                {isUploading ? (
+                  <>
+                    <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                    Uploading Assets...
+                  </>
+                ) : 'Finalize Submission'}
+              </button>
+            )}
           </div>
         </div>
       </div>
@@ -26,14 +182,30 @@ const Verification: React.FC = () => {
   );
 };
 
-const Step: React.FC<{ num: number; title: string; desc: string; active?: boolean; completed?: boolean }> = ({ num, title, desc, active, completed }) => (
-  <div className={`flex gap-6 ${active ? 'opacity-100' : 'opacity-40'}`}>
-    <div className={`w-10 h-10 rounded-full flex items-center justify-center border-2 font-bold shrink-0 ${completed ? 'bg-green-500 border-green-500 text-black' : (active ? 'border-white text-white' : 'border-zinc-800 text-zinc-800')}`}>
-      {completed ? '✓' : num}
+const UploadCard = ({ title, desc, preview, onFile }: any) => (
+  <div className="space-y-6">
+    <div>
+      <h3 className="text-xl font-bold uppercase tracking-tighter mb-2">{title}</h3>
+      <p className="text-zinc-500 text-[10px] uppercase tracking-widest leading-relaxed max-w-sm">{desc}</p>
     </div>
-    <div className="space-y-1">
-      <h4 className="font-bold uppercase tracking-widest text-sm">{title}</h4>
-      <p className="text-xs text-zinc-500 leading-relaxed">{desc}</p>
+    <div className="relative aspect-video rounded-3xl border-2 border-dashed border-white/10 overflow-hidden flex flex-col items-center justify-center group hover:bg-white/5 transition-all hover:border-white/20">
+      {preview ? (
+        <>
+          <img src={preview} className="absolute inset-0 w-full h-full object-cover" alt="Preview" />
+          <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
+            <span className="bg-white text-black px-6 py-2 rounded-full font-bold text-[8px] uppercase tracking-widest">Replace Document</span>
+            <input type="file" className="hidden" accept="image/*" onChange={onFile} />
+          </label>
+        </>
+      ) : (
+        <label className="inset-0 absolute cursor-pointer flex flex-col items-center justify-center gap-4">
+          <div className="w-12 h-12 bg-white/5 rounded-full flex items-center justify-center border border-white/10">
+            <svg className="w-6 h-6 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
+          </div>
+          <span className="text-[9px] uppercase tracking-[0.2em] font-bold text-zinc-600 group-hover:text-white transition-colors">Select Asset From Storage</span>
+          <input type="file" className="hidden" accept="image/*" onChange={onFile} />
+        </label>
+      )}
     </div>
   </div>
 );
