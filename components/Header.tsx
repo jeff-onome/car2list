@@ -16,7 +16,8 @@ const Header: React.FC = () => {
     setMobileSidebarOpen, 
     isMobileSidebarOpen,
     notifications,
-    markNotificationAsRead
+    markNotificationAsRead,
+    clearNotifications
   } = useUserData();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
@@ -59,6 +60,22 @@ const Header: React.FC = () => {
       setSidebarCollapsed(!isSidebarCollapsed);
     } else {
       setMobileSidebarOpen(!isMobileSidebarOpen);
+    }
+  };
+
+  const formatTime = (isoString: string) => {
+    try {
+      const date = new Date(isoString);
+      const now = new Date();
+      const diffMs = now.getTime() - date.getTime();
+      const diffMins = Math.floor(diffMs / 60000);
+      
+      if (diffMins < 1) return 'Just now';
+      if (diffMins < 60) return `${diffMins}m ago`;
+      if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
+      return date.toLocaleDateString();
+    } catch (e) {
+      return isoString;
     }
   };
 
@@ -115,7 +132,7 @@ const Header: React.FC = () => {
               <div className="absolute right-0 mt-3 w-80 bg-zinc-950 rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[100]">
                 <div className="px-4 py-3 border-b border-white/5 flex justify-between items-center bg-zinc-950">
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Notifications</h4>
-                  <span className="text-[9px] text-zinc-500 uppercase">{unreadCount} Unread</span>
+                  <button onClick={clearNotifications} className="text-[8px] text-zinc-600 uppercase hover:text-white transition-colors">Clear All</button>
                 </div>
                 <div className="max-h-[350px] overflow-y-auto bg-zinc-950">
                   {notifications.length > 0 ? (
@@ -128,16 +145,16 @@ const Header: React.FC = () => {
                         <div className="flex items-start gap-3">
                           <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.type === 'success' ? 'bg-green-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'}`} />
                           <div className="space-y-1">
-                            <p className="text-xs font-bold text-white">{n.title}</p>
+                            <p className={`text-xs font-bold ${n.read ? 'text-zinc-400' : 'text-white'}`}>{n.title}</p>
                             <p className="text-[10px] text-zinc-500 leading-relaxed">{n.message}</p>
-                            <p className="text-[8px] text-zinc-600 uppercase tracking-tighter pt-1">{n.time}</p>
+                            <p className="text-[8px] text-zinc-600 uppercase tracking-tighter pt-1">{formatTime(n.time)}</p>
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="p-10 text-center bg-zinc-950">
-                      <p className="text-[10px] text-zinc-600 uppercase tracking-widest">No notifications yet</p>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-widest">No notifications identified</p>
                     </div>
                   )}
                 </div>
@@ -195,9 +212,11 @@ const Header: React.FC = () => {
             )}
           </div>
         ) : (
-          <Link to="/login" className="bg-white text-black text-[10px] px-6 py-2.5 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase tracking-widest">
-            Sign In
-          </Link>
+          <div className="hidden lg:block">
+            <Link to="/login" className="bg-white text-black text-[10px] px-6 py-2.5 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase tracking-widest">
+              Sign In
+            </Link>
+          </div>
         )}
         
         {!isPortal && (
@@ -206,7 +225,7 @@ const Header: React.FC = () => {
               {isMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
               ) : (
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16m-7 6h7" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16m-7 6h7" />
               )}
             </svg>
           </button>
@@ -226,7 +245,7 @@ const Header: React.FC = () => {
             </Link>
           ))}
           {!isAuthenticated && (
-            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="bg-white text-black py-4 rounded-xl font-bold text-center uppercase tracking-widest text-xs">
+            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="bg-white text-black py-4 rounded-xl font-bold text-center uppercase tracking-widest text-xs flex items-center justify-center">
               Sign In
             </Link>
           )}

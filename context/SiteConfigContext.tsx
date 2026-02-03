@@ -1,11 +1,12 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { SiteConfig } from '../types';
+import { SiteConfig, Testimonial, CustomSection } from '../types';
 import { dbService } from '../services/database';
 
 interface SiteConfigContextType {
   config: SiteConfig;
   updateConfig: (newConfig: Partial<SiteConfig>) => void;
+  formatPrice: (usdPrice: number) => string;
   isLoading: boolean;
 }
 
@@ -20,6 +21,21 @@ export const SiteConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     heroSubtitle: 'Discover the world\'s most exclusive luxury automobiles.',
     primaryColor: '#ffffff',
     featuredBanner: 'Luxury Redefined',
+    activeCurrency: 'USD',
+    currencies: {
+      USD: { code: 'USD', symbol: '$', rate: 1 },
+      NGN: { code: 'NGN', symbol: '₦', rate: 1550 },
+      EUR: { code: 'EUR', symbol: '€', rate: 0.92 },
+      GBP: { code: 'GBP', symbol: '£', rate: 0.78 },
+      JPY: { code: 'JPY', symbol: '¥', rate: 148.5 },
+      CAD: { code: 'CAD', symbol: 'C$', rate: 1.35 },
+      AUD: { code: 'AUD', symbol: 'A$', rate: 1.52 },
+      CHF: { code: 'CHF', symbol: 'Fr', rate: 0.88 },
+      CNY: { code: 'CNY', symbol: '¥', rate: 7.19 },
+      ZAR: { code: 'ZAR', symbol: 'R', rate: 18.95 },
+      AED: { code: 'AED', symbol: 'د.إ', rate: 3.67 },
+      GHS: { code: 'GHS', symbol: '₵', rate: 12.45 }
+    },
     dealOfTheWeek: {
       isActive: true,
       make: 'Ferrari',
@@ -28,6 +44,36 @@ export const SiteConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       price: 450000,
       image: 'https://images.unsplash.com/photo-1583121274602-3e2820c69888?auto=format&fit=crop&q=80&w=1200',
       endTime: defaultEndTime
+    },
+    testimonials: [
+      { id: '1', text: 'The absolute pinnacle of luxury acquisition. The concierge service made my international delivery seamless.', name: 'Alexander Rothschild', role: 'Private Collector', avatar: 'https://i.pravatar.cc/150?u=alex' },
+      { id: '2', text: 'AutoSphere redefined what I expect from a dealership. Their 3D visualization is stunningly accurate.', name: 'Elena Vance', role: 'CEO, Vance Tech', avatar: 'https://i.pravatar.cc/150?u=elena' }
+    ],
+    customSections: {
+      section1: {
+        isActive: true,
+        title: 'Beyond the Drive',
+        subtitle: 'The Experience',
+        content: 'Owning a masterpiece is just the beginning. Our lifestyle management ensures your automotive asset is always ready for the moment.',
+        imageUrl: 'https://images.unsplash.com/photo-1562141961-b5d185ef3571?q=80&w=1200',
+        layout: 'left'
+      },
+      section2: {
+        isActive: true,
+        title: 'Global Connectivity',
+        subtitle: 'Our Network',
+        content: 'With strategic hubs in Geneva, Dubai, and Singapore, we facilitate cross-border transactions with military precision.',
+        imageUrl: 'https://images.unsplash.com/photo-1514316454349-750a7fd3da3a?q=80&w=1200',
+        layout: 'right'
+      },
+      section3: {
+        isActive: true,
+        title: 'Future Heritage',
+        subtitle: 'Digital Innovation',
+        content: 'We utilize blockchain technology for immutable vehicle history tracking, ensuring your investment provenance is unquestionable.',
+        imageUrl: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=1200',
+        layout: 'left'
+      }
     },
     inventoryPage: {
       title: 'Inventory',
@@ -91,12 +137,25 @@ export const SiteConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   }, []);
 
   const updateConfig = async (newConfig: Partial<SiteConfig>) => {
-    setConfig(prev => ({ ...prev, ...newConfig }));
+    const updated = { ...config, ...newConfig };
+    setConfig(updated);
     await dbService.updateSiteConfig(newConfig);
   };
 
+  const formatPrice = (usdPrice: number): string => {
+    const currency = config.currencies[config.activeCurrency] || config.currencies['USD'];
+    const converted = usdPrice * currency.rate;
+    
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency.code,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(converted).replace(/[A-Z]{3}/, currency.symbol);
+  };
+
   return (
-    <SiteConfigContext.Provider value={{ config, updateConfig, isLoading }}>
+    <SiteConfigContext.Provider value={{ config, updateConfig, formatPrice, isLoading }}>
       {children}
     </SiteConfigContext.Provider>
   );

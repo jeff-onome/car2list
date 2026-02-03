@@ -24,7 +24,6 @@ const Login: React.FC = () => {
       const foundUser = users.find(u => u.email.toLowerCase() === email.toLowerCase());
 
       if (!foundUser) {
-        // Aesthetic error handling using SweetAlert2
         Swal.fire({
           title: '<span style="text-transform: uppercase; font-size: 1.25rem;">Access Denied</span>',
           text: 'No active membership was found for this identity in the AutoSphere registry.',
@@ -48,10 +47,30 @@ const Login: React.FC = () => {
         return;
       }
 
-      // 3. Authenticate session
+      // 3. Check for suspension
+      if (foundUser.isSuspended) {
+        Swal.fire({
+          title: '<span style="text-transform: uppercase; font-size: 1.25rem; color: #ef4444;">Account Restricted</span>',
+          text: 'This identity has been suspended by system administration for policy review. Please contact support.',
+          icon: 'warning',
+          confirmButtonText: 'CONTACT CONCIERGE',
+          background: '#0a0a0a',
+          color: '#fff',
+          customClass: {
+            popup: 'glass rounded-[2rem] border border-red-500/20 shadow-2xl',
+            confirmButton: 'bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest',
+          }
+        }).then(() => {
+          navigate('/contact');
+        });
+        setIsLoggingIn(false);
+        return;
+      }
+
+      // 4. Authenticate session
       login(foundUser.role, foundUser);
       
-      // 4. Determine destination
+      // 5. Determine destination
       let target = '/user/profile';
       if (foundUser.role === 'ADMIN') target = '/admin/dashboard';
       if (foundUser.role === 'DEALER') target = '/dealer/dashboard';

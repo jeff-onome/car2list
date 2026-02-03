@@ -3,12 +3,15 @@ import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
 import { useUserData } from '../../context/UserDataContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import ThreeCarViewer from '../../components/ThreeCarViewer';
+import SEO from '../../components/SEO';
 
 const CarDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { getCarById, favorites, toggleFavorite } = useCars();
   const { addRecentlyViewed } = useUserData();
+  const { formatPrice } = useSiteConfig();
 
   const car = getCarById(id || '');
 
@@ -23,8 +26,34 @@ const CarDetail: React.FC = () => {
 
   const isFav = favorites.includes(car.id);
 
+  const carSchema = {
+    "@context": "https://schema.org",
+    "@type": "Product",
+    "name": `${car.make} ${car.model}`,
+    "image": car.images[0],
+    "description": car.description,
+    "brand": {
+      "@type": "Brand",
+      "name": car.make
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": window.location.href,
+      "priceCurrency": "USD",
+      "price": car.price,
+      "availability": "https://schema.org/InStock",
+      "itemCondition": car.listingType === 'New' ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition"
+    }
+  };
+
   return (
     <div className="min-h-screen bg-black text-white pt-16">
+      <SEO 
+        title={`${car.year} ${car.make} ${car.model} for Sale`} 
+        description={`Explore the stunning ${car.make} ${car.model}. ${car.description.substring(0, 150)}...`} 
+        schema={carSchema}
+      />
+      
       <div className="grid grid-cols-1 lg:grid-cols-2">
         {/* Left: Visualization */}
         <div className="relative h-[50vh] lg:h-[calc(100vh-64px)] bg-zinc-900 overflow-hidden sticky top-16">
@@ -39,32 +68,34 @@ const CarDetail: React.FC = () => {
 
         {/* Right: Info */}
         <div className="p-8 md:p-16 space-y-12">
-          <div className="space-y-4">
+          <main className="space-y-4">
             <div className="flex items-center justify-between">
               <span className="text-zinc-500 uppercase tracking-widest text-xs">{car.year} Release</span>
               <button 
                 onClick={() => toggleFavorite(car.id)}
                 className={`p-3 rounded-full border transition-all ${isFav ? 'bg-white text-black border-white' : 'border-white/10 text-white hover:bg-white/5'}`}
+                aria-label="Toggle Favorite"
               >
                 <svg className="w-5 h-5" fill={isFav ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
               </button>
             </div>
             <h1 className="text-5xl md:text-6xl font-bold uppercase tracking-tighter">{car.make} {car.model}</h1>
-            <p className="text-3xl font-light text-zinc-300">${car.price.toLocaleString()}</p>
-          </div>
+            <p className="text-3xl font-light text-zinc-300">{formatPrice(car.price)}</p>
+          </main>
 
-          <p className="text-zinc-400 leading-relaxed text-lg max-w-xl">
+          <article className="text-zinc-400 leading-relaxed text-lg max-w-xl">
+            <h2 className="sr-only">Vehicle Description</h2>
             {car.description}
-          </p>
+          </article>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 border-t border-white/10">
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 border-t border-white/10">
             <SpecItem label="Power" value={`${car.hp} HP`} />
             <SpecItem label="0-100 km/h" value={car.acceleration} />
             <SpecItem label="Fuel Type" value={car.fuel} />
-            <SpecItem label="Mileage" value={`${car.mileage} mi`} />
-          </div>
+            <SpecItem label="Mileage" value={`${car.mileage.toLocaleString()} mi`} />
+          </section>
 
-          <div className="space-y-6">
+          <section className="space-y-6">
             <h3 className="text-xl font-bold uppercase tracking-widest">Key Features</h3>
             <ul className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {car.features.map((f, i) => (
@@ -74,7 +105,7 @@ const CarDetail: React.FC = () => {
                 </li>
               ))}
             </ul>
-          </div>
+          </section>
 
           <div className="pt-12 flex gap-4">
             <button className="flex-grow bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all">
@@ -92,7 +123,7 @@ const CarDetail: React.FC = () => {
 
 const SpecItem: React.FC<{ label: string; value: string }> = ({ label, value }) => (
   <div>
-    <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">{label}</p>
+    <h4 className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1">{label}</h4>
     <p className="text-lg font-bold">{value}</p>
   </div>
 );

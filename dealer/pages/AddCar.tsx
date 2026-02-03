@@ -1,15 +1,16 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'https://esm.sh/sweetalert2@11';
 import { useCars } from '../../context/CarContext';
 import { useAuth } from '../../context/AuthContext';
+import { storageService } from '../../services/storage';
+import { dbService } from '../../services/database';
 
 const AddCar: React.FC = () => {
   const navigate = useNavigate();
   const { addCar } = useCars();
   const { user } = useAuth();
-  const [images, setImages] = useState<string[]>([]);
+  const [images, setImages] = useState<{file?: File, preview: string}[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   
   const [formData, setFormData] = useState({
@@ -31,10 +32,11 @@ const AddCar: React.FC = () => {
     const files = e.target.files;
     if (!files) return;
 
-    Array.from(files).forEach(file => {
+    // Fixed: Explicitly type 'file' as File to avoid 'unknown' type error when calling readAsDataURL
+    Array.from(files).forEach((file: File) => {
       const reader = new FileReader();
       reader.onloadend = () => {
-        setImages(prev => [...prev, reader.result as string]);
+        setImages(prev => [...prev, { file, preview: reader.result as string }]);
       };
       reader.readAsDataURL(file);
     });
@@ -60,32 +62,64 @@ const AddCar: React.FC = () => {
 
     setIsSubmitting(true);
 
-    const carData = {
-      ...formData,
-      price: Number(formData.price),
-      images: images,
-      features: ['Concierge Delivery', 'Sphere Standard Inspected'],
-      isFeatured: false,
-      dealerId: user?.id || 'unknown',
-      dealerName: user?.name || 'Authorized Dealer'
-    };
+    try {
+      // 1. Upload images to Supabase
+      const uploadPromises = images.map(async (img) => {
+        if (img.file) {
+          return await storageService.uploadImage(img.file);
+        }
+        return null;
+      });
 
-    const resultId = await addCar(carData);
-    setIsSubmitting(false);
+      const uploadedUrls = (await Promise.all(uploadPromises)).filter(url => url !== null) as string[];
 
-    if (resultId) {
+      if (uploadedUrls.length === 0) {
+        throw new Error('Image upload failed');
+      }
+
+      // 2. Prepare car data for Firebase
+      const carData = {
+        ...formData,
+        price: Number(formData.price),
+        images: uploadedUrls,
+        features: ['Concierge Delivery', 'Sphere Standard Inspected'],
+        isFeatured: false,
+        dealerId: user?.id || 'unknown',
+        dealerName: user?.name || 'Authorized Dealer',
+        status: 'pending' as const
+      };
+
+      // 3. Save to Firebase
+      const resultId = await addCar(carData);
+      
+      if (resultId) {
+        // Notify Dealer
+        if (user?.id) {
+          await dbService.createNotification(user.id, {
+            title: 'Submission Received',
+            message: `The ${formData.make} ${formData.model} has been entered into the moderation queue.`,
+            type: 'info'
+          });
+        }
+
+        setIsSubmitting(false);
+        Swal.fire({
+          title: 'Submission Received',
+          text: 'Your listing has been sent to our moderation team. You will be notified once it is approved.',
+          icon: 'success',
+          confirmButtonColor: '#000',
+          background: '#111',
+          color: '#fff'
+        }).then(() => navigate('/dealer/dashboard'));
+      } else {
+        throw new Error('Database sync failed');
+      }
+    } catch (error) {
+      console.error(error);
+      setIsSubmitting(false);
       Swal.fire({
-        title: 'Success!',
-        text: 'Your masterpiece has been synchronized with the global inventory.',
-        icon: 'success',
-        confirmButtonColor: '#000',
-        background: '#111',
-        color: '#fff'
-      }).then(() => navigate('/dealer/dashboard'));
-    } else {
-      Swal.fire({
-        title: 'Deployment Failed',
-        text: 'An error occurred during synchronization. Please check your connection.',
+        title: 'Process Failed',
+        text: 'An error occurred during image upload or synchronization. Please try again.',
         icon: 'error',
         confirmButtonColor: '#000',
         background: '#111',
@@ -160,7 +194,7 @@ const AddCar: React.FC = () => {
                   <div className="grid grid-cols-3 gap-3">
                     {images.map((img, idx) => (
                       <div key={idx} className="relative aspect-square rounded-xl overflow-hidden border border-white/10 group">
-                        <img src={img} className="w-full h-full object-cover" alt="" />
+                        <img src={img.preview} className="w-full h-full object-cover" alt="" />
                         <button 
                           type="button"
                           onClick={() => removeImage(idx)}
@@ -182,8 +216,8 @@ const AddCar: React.FC = () => {
                   <span className="text-white">Global Premium</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  <span>Sync Status</span>
-                  <span className="text-white">Cloud Ready</span>
+                  <span>Moderation</span>
+                  <span className="text-amber-400 font-bold uppercase tracking-tighter">Required</span>
                 </div>
               </div>
               <button 
@@ -192,8 +226,9 @@ const AddCar: React.FC = () => {
                 className={`w-full bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl text-xs flex items-center justify-center gap-2 ${isSubmitting ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 {isSubmitting && <svg className="animate-spin h-4 w-4 text-black" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>}
-                {isSubmitting ? 'Synchronizing...' : 'Submit Listing'}
+                {isSubmitting ? 'Uploading to Storage...' : 'Submit for Review'}
               </button>
+              <p className="text-[9px] text-zinc-600 uppercase text-center tracking-tighter">Images are stored securely in Supabase.</p>
             </div>
           </div>
         </form>

@@ -9,10 +9,7 @@ const DealerDashboard: React.FC = () => {
   const { cars } = useCars();
   const navigate = useNavigate();
   
-  // In a real app, we'd use user.id to match dealerId.
-  // For mock purposes, let's assume 'dealer1' for 'Luxury Motors' and fallback.
-  const targetDealerId = user?.role === 'DEALER' ? 'dealer1' : '';
-  const dealerCars = cars.filter(c => c.dealerId === targetDealerId || c.dealerName === user?.name);
+  const dealerCars = cars.filter(c => c.dealerId === user?.id);
 
   return (
     <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
@@ -20,73 +17,78 @@ const DealerDashboard: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <div>
             <h1 className="text-4xl font-bold uppercase tracking-tighter">Dealer Hub</h1>
-            <p className="text-zinc-500 mt-2">Managing the {user?.name} collection.</p>
+            <p className="text-zinc-500 mt-2 uppercase text-[10px] tracking-[0.2em] font-bold">Managing {user?.name} Portfolio</p>
           </div>
           <button 
             onClick={() => navigate('/dealer/add-car')}
-            className="bg-white text-black px-8 py-3 rounded-full font-bold text-sm uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl"
+            className="bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl"
           >
-            Create Listing
+            Enroll New Vehicle
           </button>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
-          <StatCard label="Inventory Value" value={`$${(dealerCars.reduce((acc, c) => acc + c.price, 0) / 1000000).toFixed(1)}M`} />
-          <StatCard label="Live Listings" value={dealerCars.length.toString()} />
-          <StatCard label="Client Interest" value="12" />
+          <StatCard label="Portfolio Valuation" value={`$${(dealerCars.reduce((acc, c) => acc + c.price, 0) / 1000000).toFixed(1)}M`} />
+          <StatCard label="Active Listings" value={dealerCars.length.toString()} />
+          <StatCard label="Review Queue" value={dealerCars.filter(c => c.status === 'pending').length.toString()} />
         </div>
 
         <div className="glass rounded-3xl overflow-hidden border-white/5 shadow-2xl">
-          <div className="p-6 border-b border-white/5 bg-white/5 flex justify-between items-center">
-            <h3 className="font-bold uppercase tracking-widest text-[10px] text-zinc-400">Inventory Status</h3>
-            <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{dealerCars.length} Masterpieces</span>
+          <div className="p-8 border-b border-white/5 bg-white/5 flex justify-between items-center">
+            <h3 className="font-bold uppercase tracking-widest text-[10px] text-zinc-500">Live Showroom Status</h3>
+            <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-mono">{dealerCars.length} Assets Registered</span>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full text-left">
               <thead>
-                <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5">
-                  <th className="px-6 py-5">Vehicle</th>
-                  <th className="px-6 py-5 text-center">Year</th>
-                  <th className="px-6 py-5 text-center">Valuation</th>
-                  <th className="px-6 py-5 text-center">Category</th>
-                  <th className="px-6 py-5 text-right">Actions</th>
+                <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5 bg-black/20">
+                  <th className="px-8 py-5">Masterpiece</th>
+                  <th className="px-8 py-5 text-center">Status</th>
+                  <th className="px-8 py-5 text-center">Valuation</th>
+                  <th className="px-8 py-5 text-center">Category</th>
+                  <th className="px-8 py-5 text-right">Governance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {dealerCars.length > 0 ? (
                   dealerCars.map(car => (
-                    <tr key={car.id} className="text-sm hover:bg-white/5 transition-colors group">
-                      <td className="px-6 py-4">
+                    <tr key={car.id} className="text-sm hover:bg-white/[0.02] transition-colors group">
+                      <td className="px-8 py-5">
                         <div className="flex items-center gap-4">
-                          <img src={car.images[0]} className="w-10 h-10 rounded-lg object-cover border border-white/10" alt="" />
+                          <img src={car.images[0]} className="w-12 h-12 rounded-xl object-cover border border-white/10 shadow-lg" alt="" />
                           <div>
                             <p className="font-bold text-white uppercase tracking-tight">{car.make} {car.model}</p>
-                            <p className="text-[10px] text-zinc-500">{car.listingType === 'Rent' ? 'Rental Fleet' : 'Sale Inventory'}</p>
+                            <p className="text-[9px] text-zinc-600 uppercase tracking-widest font-bold">{car.year} • {car.listingType}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-6 py-4 text-center font-mono text-zinc-400">{car.year}</td>
-                      <td className="px-6 py-4 text-center">
+                      <td className="px-8 py-5 text-center">
+                        <span className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ${car.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/20' : car.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
+                          {car.status || 'Active'}
+                        </span>
+                      </td>
+                      <td className="px-8 py-5 text-center">
                         <span className="font-mono font-bold text-white">${car.price.toLocaleString()}</span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className="px-2 py-0.5 rounded-full bg-white/5 text-[9px] font-bold tracking-widest uppercase border border-white/10">
+                      <td className="px-8 py-5 text-center">
+                        <span className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
                           {car.type}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-right">
+                      <td className="px-8 py-5 text-right">
                         <div className="flex gap-4 justify-end">
-                          <button className="text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors">Modify</button>
-                          <button className="text-[10px] uppercase font-bold text-red-500/50 hover:text-red-500 transition-colors">Archive</button>
+                          <button className="text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors underline decoration-white/0 hover:decoration-white/20">Edit</button>
+                          <button className="text-[10px] uppercase font-bold text-red-500/40 hover:text-red-500 transition-colors">Archive</button>
                         </div>
                       </td>
                     </tr>
                   ))
                 ) : (
                   <tr>
-                    <td colSpan={5} className="px-6 py-20 text-center">
+                    <td colSpan={5} className="px-8 py-24 text-center">
+                      <svg className="w-12 h-12 text-zinc-800 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                       <p className="text-zinc-600 uppercase tracking-widest text-[10px] italic">No inventory identified for this profile.</p>
-                      <button onClick={() => navigate('/dealer/add-car')} className="mt-4 text-white underline text-[10px] uppercase tracking-widest">Enroll your first vehicle</button>
+                      <button onClick={() => navigate('/dealer/add-car')} className="mt-4 bg-white/5 border border-white/10 px-8 py-3 rounded-full text-[10px] uppercase tracking-widest text-white hover:bg-white/10 transition-all font-bold">Enroll First Vehicle</button>
                     </td>
                   </tr>
                 )}
@@ -100,9 +102,9 @@ const DealerDashboard: React.FC = () => {
 };
 
 const StatCard: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="glass p-8 rounded-3xl border border-white/5">
+  <div className="glass p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
     <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-2 font-bold">{label}</p>
-    <p className="text-3xl font-bold tracking-tighter">{value}</p>
+    <p className="text-3xl font-bold tracking-tighter text-white">{value}</p>
   </div>
 );
 

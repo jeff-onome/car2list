@@ -14,7 +14,6 @@ const firebaseConfig = {
   measurementId: "G-E6JJG57PSR"
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
@@ -105,5 +104,64 @@ export const dbService = {
         callback([]);
       }
     });
+  },
+
+  // --- Purchases & Bookings ---
+  subscribeToPurchases(userId: string, callback: (purchases: any[]) => void) {
+    const purchaseRef = ref(db, `purchases/${userId}`);
+    return onValue(purchaseRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        callback(Object.keys(data).map(key => ({ ...data[key], id: key })));
+      } else {
+        callback([]);
+      }
+    });
+  },
+
+  subscribeToBookings(userId: string, callback: (bookings: any[]) => void) {
+    const bookingsRef = ref(db, `bookings/${userId}`);
+    return onValue(bookingsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        callback(Object.keys(data).map(key => ({ ...data[key], id: key })));
+      } else {
+        callback([]);
+      }
+    });
+  },
+
+  // --- Real-time Notifications ---
+  subscribeToNotifications(userId: string, callback: (notifications: any[]) => void) {
+    const notifyRef = ref(db, `notifications/${userId}`);
+    return onValue(notifyRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const sorted = Object.keys(data)
+          .map(key => ({ ...data[key], id: key }))
+          .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+        callback(sorted);
+      } else {
+        callback([]);
+      }
+    });
+  },
+
+  async createNotification(userId: string, notification: { title: string; message: string; type: 'info' | 'success' | 'warning' }) {
+    const notifyRef = ref(db, `notifications/${userId}`);
+    const newNotifyRef = push(notifyRef);
+    await set(newNotifyRef, {
+      ...notification,
+      read: false,
+      time: new Date().toISOString()
+    });
+  },
+
+  async markNotificationRead(userId: string, notificationId: string) {
+    await update(ref(db, `notifications/${userId}/${notificationId}`), { read: true });
+  },
+
+  async clearUserNotifications(userId: string) {
+    await remove(ref(db, `notifications/${userId}`));
   }
 };

@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCars } from '../../context/CarContext';
 import { dbService } from '../../services/database';
 import Swal from 'https://esm.sh/sweetalert2@11';
@@ -7,6 +7,78 @@ import { Car } from '../../types';
 
 const ManageListings: React.FC = () => {
   const { cars } = useCars();
+  const [activeTab, setActiveTab] = useState<'approved' | 'pending' | 'rejected'>('approved');
+
+  const filteredCars = cars.filter(c => c.status === activeTab || (!c.status && activeTab === 'approved'));
+
+  const handleApprove = async (car: Car) => {
+    const confirm = await Swal.fire({
+      title: 'Approve Listing?',
+      text: `This ${car.make} ${car.model} will become visible to all users immediately.`,
+      icon: 'question',
+      showCancelButton: true,
+      confirmButtonText: 'APPROVE',
+      confirmButtonColor: '#22c55e',
+      background: '#0a0a0a',
+      color: '#fff'
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await dbService.updateCar(car.id, { status: 'approved', moderationReason: '' });
+        
+        // Notify Dealer
+        if (car.dealerId) {
+          await dbService.createNotification(car.dealerId, {
+            title: 'Listing Approved',
+            message: `Your ${car.make} ${car.model} is now live in the global showroom.`,
+            type: 'success'
+          });
+        }
+
+        Swal.fire('Success', 'Listing has been published.', 'success');
+      } catch (e) {
+        Swal.fire('Error', 'Action failed.', 'error');
+      }
+    }
+  };
+
+  const handleReject = async (car: Car) => {
+    const { value: reason, isConfirmed } = await Swal.fire({
+      title: 'Reject Listing?',
+      text: 'Provide feedback to the dealer about why this listing was rejected.',
+      input: 'textarea',
+      inputPlaceholder: 'Reason for rejection (e.g., poor image quality, incorrect price)...',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'REJECT',
+      confirmButtonColor: '#ef4444',
+      background: '#0a0a0a',
+      color: '#fff',
+      customClass: {
+        input: 'bg-zinc-900 text-white border-white/10 rounded-2xl'
+      }
+    });
+
+    if (isConfirmed) {
+      try {
+        await dbService.updateCar(car.id, { status: 'rejected', moderationReason: reason || 'Policy Violation' });
+        
+        // Notify Dealer
+        if (car.dealerId) {
+          await dbService.createNotification(car.dealerId, {
+            title: 'Listing Rejected',
+            message: `The listing for ${car.make} ${car.model} was rejected: ${reason || 'Policy Violation'}`,
+            type: 'warning'
+          });
+        }
+
+        Swal.fire('Rejected', 'The dealer has been notified.', 'info');
+      } catch (e) {
+        Swal.fire('Error', 'Action failed.', 'error');
+      }
+    }
+  };
 
   const handleEditCar = (car: Car) => {
     Swal.fire({
@@ -26,14 +98,6 @@ const ManageListings: React.FC = () => {
               <option value="Classic" ${car.type === 'Classic' ? 'selected' : ''}>Classic</option>
             </select>
           </div>
-          <div>
-            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Visibility Status</label>
-            <select id="swal-status" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
-              <option value="Active">Active Listing</option>
-              <option value="Suspended">Suspended</option>
-              <option value="Private">Private Archive</option>
-            </select>
-          </div>
         </div>
       `,
       focusConfirm: false,
@@ -50,8 +114,7 @@ const ManageListings: React.FC = () => {
       preConfirm: () => {
         return {
           price: (document.getElementById('swal-price') as HTMLInputElement).value,
-          type: (document.getElementById('swal-type') as HTMLSelectElement).value,
-          status: (document.getElementById('swal-status') as HTMLSelectElement).value
+          type: (document.getElementById('swal-type') as HTMLSelectElement).value
         }
       }
     }).then(async (result) => {
@@ -59,9 +122,7 @@ const ManageListings: React.FC = () => {
         try {
           await dbService.updateCar(car.id, {
             price: Number(result.value.price),
-            type: result.value.type as any,
-            // Assuming we add a 'status' field or handle suspension
-            isFeatured: result.value.status === 'Active'
+            type: result.value.type as any
           });
 
           Swal.fire({
@@ -73,68 +134,42 @@ const ManageListings: React.FC = () => {
             confirmButtonColor: '#fff'
           });
         } catch (error) {
-          Swal.fire('Error', 'Failed to update database. Check security rules.', 'error');
+          Swal.fire('Error', 'Failed to update database.', 'error');
         }
       }
     });
   };
 
-  const handleFlagCar = (car: Car) => {
-    Swal.fire({
-      title: `<span style="text-transform: uppercase; font-size: 1.25rem; color: #ef4444;">Flag Listing</span>`,
-      text: `Identify the reason for flagging the ${car.make} ${car.model}:`,
-      input: 'select',
-      inputOptions: {
-        'suspicious': 'Suspicious Pricing',
-        'incorrect': 'Incorrect Metadata',
-        'policy': 'Policy Violation',
-        'duplicate': 'Duplicate Listing',
-        'other': 'Other Irregularity'
-      },
-      inputPlaceholder: 'Select an infraction',
-      showCancelButton: true,
-      confirmButtonText: 'FLAG LISTING',
-      cancelButtonText: 'DISMISS',
-      background: '#0a0a0a',
-      color: '#fff',
-      customClass: {
-        popup: 'glass rounded-[2rem] border border-white/10 shadow-2xl',
-        input: 'bg-zinc-900 text-white border-white/10 rounded-full',
-        confirmButton: 'bg-red-600 text-white px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-red-500',
-        cancelButton: 'text-zinc-500 font-bold text-[10px] uppercase tracking-widest bg-transparent border border-white/10'
-      }
-    }).then(async (result) => {
-      if (result.isConfirmed && result.value) {
-        try {
-          // In a real system, we'd add this to a 'reports' collection
-          // For now, let's mark the car as flagged in its own node
-          await dbService.updateCar(car.id, { 
-            description: car.description + ` [FLAGGED: ${result.value}]`
-          });
-
-          Swal.fire({
-            title: 'Flagged',
-            text: `The listing has been marked for priority review. Reason: ${result.value}`,
-            icon: 'warning',
-            background: '#111',
-            color: '#fff',
-            confirmButtonColor: '#ef4444'
-          });
-        } catch (error) {
-           Swal.fire('Error', 'Failed to flag listing.', 'error');
-        }
-      }
-    });
-  };
+  const tabs = [
+    { id: 'pending', name: 'Moderation Queue', count: cars.filter(c => c.status === 'pending').length },
+    { id: 'approved', name: 'Live Listings', count: cars.filter(c => c.status === 'approved' || !c.status).length },
+    { id: 'rejected', name: 'Rejected Archive', count: cars.filter(c => c.status === 'rejected').length }
+  ];
 
   return (
     <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-12">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-8">
           <div>
-            <h1 className="text-4xl font-bold uppercase tracking-tighter">Global Inventory</h1>
-            <p className="text-zinc-500 mt-2">Overseeing all curated listings across the AutoSphere network.</p>
+            <h1 className="text-4xl font-bold uppercase tracking-tighter text-white">Inventory Control</h1>
+            <p className="text-zinc-500 mt-2">Moderating submissions from our network of authorized dealers.</p>
           </div>
+        </div>
+
+        {/* Status Tabs */}
+        <div className="flex gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
+           {tabs.map(tab => (
+             <button
+               key={tab.id}
+               onClick={() => setActiveTab(tab.id as any)}
+               className={`px-8 py-3 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap flex items-center gap-3 ${activeTab === tab.id ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'}`}
+             >
+               {tab.name}
+               <span className={`px-2 py-0.5 rounded-full text-[8px] ${activeTab === tab.id ? 'bg-black text-white' : 'bg-white/10 text-zinc-400'}`}>
+                 {tab.count}
+               </span>
+             </button>
+           ))}
         </div>
 
         <div className="glass rounded-3xl overflow-hidden border-white/5 shadow-2xl">
@@ -144,14 +179,13 @@ const ManageListings: React.FC = () => {
                 <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5 bg-white/5">
                   <th className="px-6 py-5">Masterpiece</th>
                   <th className="px-6 py-5">Dealer Source</th>
-                  <th className="px-6 py-5">Acquisition Value</th>
-                  <th className="px-6 py-5">Provision Date</th>
-                  <th className="px-6 py-5">Status</th>
-                  <th className="px-6 py-5">Actions</th>
+                  <th className="px-6 py-5">Valuation</th>
+                  <th className="px-6 py-5">Submission Date</th>
+                  <th className="px-6 py-5 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {cars.length > 0 ? cars.map(car => (
+                {filteredCars.length > 0 ? filteredCars.map(car => (
                   <tr key={car.id} className="text-sm hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
@@ -170,33 +204,55 @@ const ManageListings: React.FC = () => {
                     </td>
                     <td className="px-6 py-4 text-zinc-500 text-xs">
                       {car.createdAt ? new Date(car.createdAt).toLocaleDateString() : 'N/A'}
-                      <br/>
-                      <span className="opacity-40">{car.createdAt ? new Date(car.createdAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
                     </td>
-                    <td className="px-6 py-4">
-                       <span className={`px-2 py-0.5 rounded-full text-[9px] font-bold tracking-widest uppercase border ${car.isFeatured ? 'bg-white/5 text-white border-white/10' : 'bg-red-500/10 text-red-500 border-red-500/10'}`}>
-                         {car.isFeatured ? 'Verified' : 'Suspended'}
-                       </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex gap-4">
-                        <button 
-                          onClick={() => handleEditCar(car)}
-                          className="text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button 
-                          onClick={() => handleFlagCar(car)}
-                          className="text-[10px] uppercase font-bold text-red-500 hover:text-red-400 transition-colors"
-                        >
-                          Flag
-                        </button>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex gap-4 justify-end">
+                        {activeTab === 'pending' && (
+                          <>
+                            <button 
+                              onClick={() => handleApprove(car)}
+                              className="bg-green-500/10 text-green-500 px-4 py-1.5 rounded-full text-[9px] uppercase font-bold tracking-widest hover:bg-green-500 hover:text-white transition-all"
+                            >
+                              Approve
+                            </button>
+                            <button 
+                              onClick={() => handleReject(car)}
+                              className="bg-red-500/10 text-red-500 px-4 py-1.5 rounded-full text-[9px] uppercase font-bold tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                            >
+                              Reject
+                            </button>
+                          </>
+                        )}
+                        
+                        {(activeTab === 'approved' || activeTab === 'rejected') && (
+                          <button 
+                            onClick={() => handleEditCar(car)}
+                            className="text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors"
+                          >
+                            Edit
+                          </button>
+                        )}
+
+                        {activeTab === 'rejected' && (
+                           <button 
+                            onClick={() => handleApprove(car)}
+                            className="text-[10px] uppercase font-bold text-zinc-400 hover:text-white transition-colors"
+                          >
+                            Re-Approve
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
                 )) : (
-                  <tr><td colSpan={6} className="p-12 text-center text-zinc-500 uppercase tracking-widest text-[10px]">No Inventory Records found.</td></tr>
+                  <tr>
+                    <td colSpan={5} className="p-20 text-center">
+                       <div className="flex flex-col items-center gap-4">
+                          <svg className="w-12 h-12 text-zinc-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
+                          <p className="text-zinc-600 uppercase tracking-widest text-[10px] italic">No items found in this category.</p>
+                       </div>
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>

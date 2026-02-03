@@ -1,0 +1,27 @@
+
+-- SQL to create 'images' bucket and enable public access
+-- Run this in the Supabase SQL Editor
+
+-- 1. Create the bucket
+insert into storage.buckets (id, name, public)
+values ('images', 'images', true)
+on conflict (id) do nothing;
+
+-- 2. Allow public access to read files
+create policy "Public Access"
+on storage.objects for select
+using ( bucket_id = 'images' );
+
+-- 3. Allow anonymous/authenticated uploads
+create policy "Allow Public Uploads"
+on storage.objects for insert
+with check ( bucket_id = 'images' );
+
+-- 4. Allow public to update/delete (Optional, be careful in production)
+create policy "Allow Public Updates"
+on storage.objects for update
+using ( bucket_id = 'images' );
+
+create policy "Allow Public Deletes"
+on storage.objects for delete
+using ( bucket_id = 'images' );

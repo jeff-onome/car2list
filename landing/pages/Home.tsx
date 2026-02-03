@@ -6,12 +6,14 @@ import { useSiteConfig } from '../../context/SiteConfigContext';
 import ThreeCarViewer from '../../components/ThreeCarViewer';
 import FeaturedGrid from '../components/FeaturedGrid';
 import CountdownTimer from '../components/CountdownTimer';
+import SEO from '../../components/SEO';
+import { CustomSection as CustomSectionType } from '../../types';
 
 declare const gsap: any;
 
 const Home: React.FC = () => {
   const { cars } = useCars();
-  const { config } = useSiteConfig();
+  const { config, formatPrice } = useSiteConfig();
   const heroRef = useRef(null);
   const textRef = useRef(null);
 
@@ -40,11 +42,33 @@ const Home: React.FC = () => {
     }
   }, []);
 
-  const featuredCars = cars.filter(c => c.isFeatured);
+  const approvedCars = cars.filter(c => c.status === 'approved');
+  const featuredCars = approvedCars.filter(c => c.isFeatured);
   const deal = config.dealOfTheWeek;
+
+  const homeSchema = {
+    "@context": "https://schema.org",
+    "@type": "CarDealer",
+    "name": config.siteName,
+    "description": config.heroSubtitle,
+    "url": "https://autosphere.com",
+    "telephone": config.contactPage.phone,
+    "address": {
+      "@type": "PostalAddress",
+      "streetAddress": config.contactPage.address,
+      "addressLocality": "Geneva",
+      "addressCountry": "CH"
+    }
+  };
 
   return (
     <div className="bg-black text-white">
+      <SEO 
+        title="Luxury Car Marketplace | Elegance in Motion" 
+        description={config.heroSubtitle} 
+        schema={homeSchema}
+      />
+      
       {/* Hero Section */}
       <section ref={heroRef} className="relative min-h-[95vh] flex flex-col items-center justify-center overflow-hidden px-6 pt-20">
         <div className="absolute inset-0 opacity-40">
@@ -68,13 +92,9 @@ const Home: React.FC = () => {
             </Link>
           </div>
         </div>
-
-        <div className="absolute bottom-10 left-1/2 -translate-x-1/2 animate-bounce opacity-20">
-          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 14l-7 7-7-7" /></svg>
-        </div>
       </section>
 
-      {/* Section 1: Brand Heritage Timeline */}
+      {/* Brand Heritage */}
       <section className="py-32 bg-zinc-950 border-y border-white/5 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
           <div className="reveal">
@@ -87,22 +107,38 @@ const Home: React.FC = () => {
             </div>
           </div>
           <div className="reveal rounded-[3rem] overflow-hidden glass aspect-square group">
-             <img src="https://images.unsplash.com/photo-1542281286-9e0a16bb7366?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" alt="Vintage Showroom" />
+             <img src="https://images.unsplash.com/photo-1542281286-9e0a16bb7366?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" alt="Vintage Luxury Car Showroom Geneva" loading="lazy" />
           </div>
         </div>
       </section>
 
-      {/* Section 2: Deal of the Week */}
+      {/* Dynamic Custom Sections */}
+      {Object.values(config.customSections).map((sec: CustomSectionType, idx: number) => sec.isActive && (
+        <section key={idx} className={`py-32 overflow-hidden ${idx % 2 === 0 ? 'bg-black' : 'bg-zinc-950'}`}>
+          <div className={`max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center ${sec.layout === 'right' ? 'lg:flex-row-reverse' : ''}`}>
+             <div className={`reveal ${sec.layout === 'right' ? 'lg:order-2' : 'lg:order-1'}`}>
+                <span className="text-xs uppercase tracking-[0.4em] text-zinc-500 mb-4 block">{sec.subtitle}</span>
+                <h2 className="text-4xl md:text-6xl font-bold mb-8 uppercase tracking-tighter leading-tight">{sec.title}</h2>
+                <p className="text-zinc-400 text-lg leading-relaxed">{sec.content}</p>
+             </div>
+             <div className={`reveal rounded-[3rem] overflow-hidden glass aspect-[4/3] group ${sec.layout === 'right' ? 'lg:order-1' : 'lg:order-2'}`}>
+                <img src={sec.imageUrl} className="w-full h-full object-cover opacity-70 group-hover:scale-110 transition-transform duration-1000" alt={sec.title} loading="lazy" />
+             </div>
+          </div>
+        </section>
+      ))}
+
+      {/* Deal of the Week */}
       {deal.isActive && (
         <section className="py-24 bg-black border-y border-white/5 overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 reveal">
              <div className="glass rounded-[3rem] overflow-hidden flex flex-col lg:flex-row items-stretch border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.05)]">
                 <div className="w-full lg:w-3/5 relative min-h-[400px]">
-                   <img src={deal.image} className="absolute inset-0 w-full h-full object-cover" alt="Deal Car" />
+                   <img src={deal.image} className="absolute inset-0 w-full h-full object-cover" alt={`Exclusive Deal: ${deal.make} ${deal.model}`} loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent lg:hidden" />
                    <div className="absolute bottom-10 left-10">
                       <span className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border border-white/30">
-                         Limited Edition • ${deal.price.toLocaleString()}
+                         Limited Edition • {formatPrice(deal.price)}
                       </span>
                    </div>
                 </div>
@@ -129,8 +165,36 @@ const Home: React.FC = () => {
         </section>
       )}
 
-      {/* Section 3: Featured Inventory Grid */}
-      <section className="py-32 px-6 md:px-12 bg-zinc-950">
+      {/* Testimonials */}
+      <section className="py-32 bg-zinc-950">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="text-center mb-20 reveal">
+            <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 block mb-4">Elite Voices</span>
+            <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tighter">Collector Reviews</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {config.testimonials.map((t, i) => (
+              <div key={t.id} className="glass p-10 rounded-[3rem] border-white/5 space-y-8 flex flex-col reveal">
+                <div className="flex-grow">
+                   <p className="text-zinc-400 text-lg italic leading-relaxed">"{t.text}"</p>
+                </div>
+                <div className="flex items-center gap-4 pt-8 border-t border-white/5">
+                   <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 border border-white/10">
+                      <img src={t.avatar || `https://i.pravatar.cc/150?u=${t.id}`} className="w-full h-full object-cover" alt={t.name} />
+                   </div>
+                   <div>
+                      <h4 className="font-bold text-sm uppercase tracking-widest">{t.name}</h4>
+                      <p className="text-[10px] text-zinc-600 uppercase font-bold tracking-widest">{t.role}</p>
+                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Featured Inventory */}
+      <section className="py-32 px-6 md:px-12 bg-black">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 reveal gap-8">
             <div className="space-y-4">
@@ -145,8 +209,8 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Section 4: Premier Luxury Services */}
-      <section className="py-32 bg-black border-y border-white/5">
+      {/* Services */}
+      <section className="py-32 bg-zinc-950 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-6">
            <div className="max-w-3xl mb-24 reveal">
               <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 mb-4 block">Excellence Guaranteed</span>
@@ -159,22 +223,6 @@ const Home: React.FC = () => {
            </div>
         </div>
       </section>
-
-      {/* Section 5: Global Strategic Network */}
-      <section className="py-32 bg-zinc-950 overflow-hidden">
-        <div className="max-w-7xl mx-auto px-6 text-center reveal">
-           <h2 className="text-4xl md:text-7xl font-bold mb-16 uppercase tracking-tighter">A Truly Global Network</h2>
-           <div className="relative aspect-[21/9] glass rounded-[4rem] flex items-center justify-center overflow-hidden group">
-              <img src="https://images.unsplash.com/photo-1526778548025-fa2f459cd5c1?auto=format&fit=crop&q=80&w=1200" className="absolute inset-0 w-full h-full object-cover opacity-10 grayscale group-hover:opacity-20 transition-all duration-1000" alt="World Map" />
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-12 relative z-10 w-full px-12">
-                 <LocationPoint city="Geneva" desc="HQ & Heritage Center" />
-                 <LocationPoint city="Dubai" desc="MENA Logistics Hub" />
-                 <LocationPoint city="London" desc="Private Viewing Gallery" />
-                 <LocationPoint city="Tokyo" desc="Exotic Import Division" />
-              </div>
-           </div>
-        </div>
-      </section>
     </div>
   );
 };
@@ -182,15 +230,8 @@ const Home: React.FC = () => {
 const ServiceCard = ({ title, desc }: any) => (
   <div className="glass p-10 rounded-[3rem] hover:border-white/40 hover:bg-white/5 transition-all reveal group cursor-default">
     <div className="w-10 h-1 bg-white/10 mb-8 group-hover:w-full group-hover:bg-white transition-all duration-500" />
-    <h4 className="text-xl font-bold mb-4 uppercase tracking-widest leading-tight">{title}</h4>
+    <h3 className="text-xl font-bold mb-4 uppercase tracking-widest leading-tight">{title}</h3>
     <p className="text-zinc-500 text-sm leading-relaxed">{desc}</p>
-  </div>
-);
-
-const LocationPoint = ({ city, desc }: any) => (
-  <div className="space-y-3">
-     <h4 className="text-2xl font-bold uppercase tracking-tighter text-white">{city}</h4>
-     <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-medium">{desc}</p>
   </div>
 );
 

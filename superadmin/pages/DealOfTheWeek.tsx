@@ -2,22 +2,44 @@
 import React, { useState } from 'react';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import Swal from 'https://esm.sh/sweetalert2@11';
+import { storageService } from '../../services/storage';
 
 const DealOfTheWeekAdmin: React.FC = () => {
   const { config, updateConfig } = useSiteConfig();
   const [deal, setDeal] = useState(config.dealOfTheWeek);
+  const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(deal.image);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setIsUploading(true);
+      // Show local preview immediately
       const reader = new FileReader();
       reader.onloadend = () => {
-        const base64 = reader.result as string;
-        setDeal(prev => ({ ...prev, image: base64 }));
-        setImagePreview(base64);
+        setImagePreview(reader.result as string);
       };
       reader.readAsDataURL(file);
+
+      // Upload to Supabase
+      const url = await storageService.uploadImage(file);
+      if (url) {
+        setDeal(prev => ({ ...prev, image: url }));
+        setImagePreview(url);
+        Swal.fire({
+          toast: true,
+          position: 'top-end',
+          icon: 'success',
+          title: 'Asset uploaded to Supabase',
+          showConfirmButton: false,
+          timer: 2000,
+          background: '#0a0a0a',
+          color: '#fff'
+        });
+      } else {
+        Swal.fire('Upload Error', 'Failed to store image in Supabase.', 'error');
+      }
+      setIsUploading(false);
     }
   };
 
@@ -92,18 +114,23 @@ const DealOfTheWeekAdmin: React.FC = () => {
             <div className="glass p-6 md:p-10 rounded-[2rem] md:rounded-[3rem] border-white/5 space-y-6">
               <h3 className="text-[10px] font-bold uppercase tracking-widest text-zinc-400 border-b border-white/5 pb-4">Visual Asset</h3>
               <div className="space-y-6">
-                <div className="aspect-[16/10] rounded-2xl overflow-hidden border border-white/5 bg-zinc-900">
+                <div className="aspect-[16/10] rounded-2xl overflow-hidden border border-white/5 bg-zinc-900 relative">
                   {imagePreview ? (
                     <img src={imagePreview} className="w-full h-full object-cover" alt="Preview" />
                   ) : (
                     <div className="w-full h-full flex items-center justify-center text-zinc-700 uppercase tracking-widest text-[10px]">No image selected</div>
+                  )}
+                  {isUploading && (
+                    <div className="absolute inset-0 bg-black/60 flex items-center justify-center">
+                       <span className="text-[10px] text-white uppercase font-bold tracking-widest animate-pulse">Uploading to Supabase...</span>
+                    </div>
                   )}
                 </div>
                 <label className="block w-full cursor-pointer">
                   <div className="w-full bg-zinc-900 border border-white/5 rounded-full px-6 py-4 text-center text-[10px] uppercase font-bold tracking-widest hover:bg-zinc-800 transition-colors">
                     Upload Cinematic Asset
                   </div>
-                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} />
+                  <input type="file" accept="image/*" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
                 </label>
               </div>
             </div>
@@ -115,13 +142,14 @@ const DealOfTheWeekAdmin: React.FC = () => {
                   <span className="text-white">Global Landing</span>
                 </div>
                 <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold text-zinc-500">
-                  <span>Update Frequency</span>
-                  <span className="text-white">Real-time</span>
+                  <span>Storage Backend</span>
+                  <span className="text-emerald-400 font-bold uppercase tracking-tighter">Supabase</span>
                 </div>
               </div>
               <div className="pt-2">
                 <button 
                   onClick={handleSave}
+                  disabled={isUploading}
                   className="w-full bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl text-xs active:scale-[0.98]"
                 >
                   Launch Promotion

@@ -2,12 +2,15 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Car } from '../../types';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 
 interface CarCardProps {
   car: Car;
 }
 
 const CarCard: React.FC<CarCardProps> = ({ car }) => {
+  const { formatPrice } = useSiteConfig();
+
   const getListingTypeLabel = () => {
     switch (car.listingType) {
       case 'New': return 'Buy New';
@@ -31,8 +34,9 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
       <div className="relative aspect-[16/10] overflow-hidden">
         <img 
           src={car.images[0]} 
-          alt={`${car.make} ${car.model}`} 
+          alt={`Luxury ${car.make} ${car.model} available at AutoSphere`} 
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
+          loading="lazy"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
         
@@ -56,7 +60,7 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
           </div>
           <div className="text-right">
             <span className="text-lg font-bold">
-              ${car.price.toLocaleString()}
+              {formatPrice(car.price)}
               {car.listingType === 'Rent' && <span className="text-[10px] text-zinc-500 font-normal ml-1">/ day</span>}
             </span>
           </div>
@@ -64,11 +68,11 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
         
         <div className="flex items-center justify-between text-[11px] text-zinc-500 uppercase tracking-[0.2em] pt-4 border-t border-white/5">
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>
             {car.hp} HP
           </div>
           <div className="flex items-center gap-2">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
             {car.acceleration}
           </div>
         </div>

@@ -8,6 +8,7 @@ export interface User {
   role: UserRole;
   avatar?: string;
   isVerified: boolean;
+  isSuspended?: boolean;
   joinedAt: string;
 }
 
@@ -16,7 +17,7 @@ export interface Car {
   make: string;
   model: string;
   year: number;
-  price: number;
+  price: number; // Base price in USD
   type: 'Luxury' | 'Sports' | 'SUV' | 'Classic';
   transmission: 'Automatic' | 'Manual';
   fuel: 'Petrol' | 'Electric' | 'Hybrid';
@@ -31,6 +32,14 @@ export interface Car {
   dealerName?: string;
   listingType: 'New' | 'Used' | 'Rent';
   createdAt?: string;
+  status: 'pending' | 'approved' | 'rejected';
+  moderationReason?: string;
+}
+
+export interface CurrencyConfig {
+  code: string;
+  symbol: string;
+  rate: number; // vs USD
 }
 
 export interface DealOfTheWeek {
@@ -43,13 +52,38 @@ export interface DealOfTheWeek {
   endTime: string; // ISO string
 }
 
+export interface Testimonial {
+  id: string;
+  text: string;
+  name: string;
+  role: string;
+  avatar?: string;
+}
+
+export interface CustomSection {
+  isActive: boolean;
+  title: string;
+  subtitle: string;
+  content: string;
+  imageUrl: string;
+  layout: 'left' | 'right';
+}
+
 export interface SiteConfig {
   siteName: string;
   heroTitle: string;
   heroSubtitle: string;
   primaryColor: string;
   featuredBanner: string;
+  activeCurrency: string;
+  currencies: Record<string, CurrencyConfig>;
   dealOfTheWeek: DealOfTheWeek;
+  testimonials: Testimonial[];
+  customSections: {
+    section1: CustomSection;
+    section2: CustomSection;
+    section3: CustomSection;
+  };
   inventoryPage: {
     title: string;
     description: string;
