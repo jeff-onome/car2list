@@ -2,10 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { useCars } from '../../context/CarContext';
 import { dbService } from '../../services/database';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import { User } from '../../types';
 
 const AdminDashboard: React.FC = () => {
   const { cars } = useCars();
+  const { formatPrice, config } = useSiteConfig();
   const [users, setUsers] = useState<User[]>([]);
   const pendingCount = cars.filter(c => c.status === 'pending').length;
 
@@ -24,7 +26,7 @@ const AdminDashboard: React.FC = () => {
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <Stat label="Global Users" value={users.length.toLocaleString()} />
-          <Stat label="Total Volume" value={`$${(totalVolume / 1000000).toFixed(1)}M`} />
+          <Stat label={`Total Volume (${config.activeCurrency})`} value={formatPrice(totalVolume)} />
           <Stat label="Pending Moderation" value={pendingCount.toString()} highlight={pendingCount > 0} />
           <Stat label="Active Dealers" value={dealerCount.toString()} />
         </div>
@@ -68,7 +70,7 @@ const AdminDashboard: React.FC = () => {
 const Stat: React.FC<{ label: string; value: string; highlight?: boolean }> = ({ label, value, highlight }) => (
   <div className={`glass p-6 rounded-2xl border ${highlight ? 'border-amber-500/30 bg-amber-500/5' : 'border-white/5'}`}>
     <p className="text-[10px] uppercase tracking-widest text-zinc-500 mb-1 font-bold">{label}</p>
-    <p className={`text-2xl font-bold ${highlight ? 'text-amber-400' : 'text-white'}`}>{value}</p>
+    <p className={`text-2xl font-bold tracking-tight ${highlight ? 'text-amber-400' : 'text-white'}`}>{value}</p>
   </div>
 );
 

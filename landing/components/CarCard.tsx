@@ -11,23 +11,18 @@ interface CarCardProps {
 const CarCard: React.FC<CarCardProps> = ({ car }) => {
   const { formatPrice } = useSiteConfig();
 
-  const getListingTypeLabel = () => {
-    switch (car.listingType) {
-      case 'New': return 'Buy New';
-      case 'Used': return 'Buy Old';
-      case 'Rent': return 'Rental';
-      default: return car.listingType;
-    }
-  };
-
-  const getListingTypeColor = () => {
-    switch (car.listingType) {
+  const getCategoryColor = (cat: string) => {
+    switch (cat) {
       case 'New': return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
-      case 'Used': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
-      case 'Rent': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'Pre-Owned': return 'bg-amber-500/20 text-amber-400 border-amber-500/30';
+      case 'Rental': return 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30';
+      case 'Limited Edition': return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
+      case 'Auction': return 'bg-red-500/20 text-red-400 border-red-500/30';
       default: return 'bg-white/10 text-white border-white/20';
     }
   };
+
+  const cats = car.categories || [];
 
   return (
     <Link to={`/car/${car.id}`} className="group block glass rounded-2xl overflow-hidden hover:border-white/30 transition-all duration-500">
@@ -40,10 +35,12 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
         
-        <div className="absolute top-4 right-4">
-           <span className={`backdrop-blur-md px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-widest border ${getListingTypeColor()}`}>
-            {getListingTypeLabel()}
-          </span>
+        <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
+           {cats.map(cat => (
+             <span key={cat} className={`backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ${getCategoryColor(cat)} shadow-lg`}>
+                {cat}
+             </span>
+           ))}
         </div>
 
         <div className="absolute bottom-4 left-6">
@@ -61,7 +58,7 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
           <div className="text-right">
             <span className="text-lg font-bold">
               {formatPrice(car.price)}
-              {car.listingType === 'Rent' && <span className="text-[10px] text-zinc-500 font-normal ml-1">/ day</span>}
+              {cats.includes('Rental') && <span className="text-[10px] text-zinc-500 font-normal ml-1">/ day</span>}
             </span>
           </div>
         </div>

@@ -43,6 +43,7 @@ import AddUser from './superadmin/pages/AddUser';
 import AdminManageListings from './superadmin/pages/ManageListings';
 import SiteCMS from './superadmin/pages/SiteCMS';
 import DealOfTheWeekAdmin from './superadmin/pages/DealOfTheWeek';
+import KYCReview from './superadmin/pages/KYCReview';
 
 // Common
 import Security from './common/pages/Security';
@@ -117,6 +118,7 @@ const App: React.FC = () => {
                         <Routes>
                           <Route path="dashboard" element={<AdminDashboard />} />
                           <Route path="users" element={<ManageUsers />} />
+                          <Route path="kyc" element={<KYCReview />} />
                           <Route path="security" element={<Security />} />
                           <Route path="add-user" element={<AddUser />} />
                           <Route path="listings" element={<AdminManageListings />} />

@@ -1,4 +1,5 @@
-import React, { useEffect, useRef } from 'react';
+
+import React, { useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
@@ -41,8 +42,17 @@ const Home: React.FC = () => {
     }
   }, []);
 
-  const approvedCars = cars.filter(c => c.status === 'approved');
-  const featuredCars = approvedCars.filter(c => c.isFeatured);
+  const newArrivals = useMemo(() => {
+    return cars
+      .filter(c => c.status === 'approved')
+      .sort((a, b) => {
+        const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return dateB - dateA;
+      })
+      .slice(0, 6);
+  }, [cars]);
+
   const deal = config.dealOfTheWeek;
 
   const homeSchema = {
@@ -136,7 +146,6 @@ const Home: React.FC = () => {
                    <img src={deal.image} className="absolute inset-0 w-full h-full object-cover" alt={`Exclusive Deal: ${deal.make} ${deal.model}`} loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent lg:hidden" />
                    
-                   {/* Responsive Limited Edition Badge - Improved for long price amounts */}
                    <div className="absolute bottom-6 left-6 right-6 md:right-auto md:bottom-10 md:left-10 pointer-events-none flex">
                       <div className="bg-white/10 backdrop-blur-xl px-4 py-3 rounded-2xl md:rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest border border-white/20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center max-w-full shadow-2xl">
                          <span className="text-white/60 whitespace-nowrap">Limited Edition</span>
@@ -198,7 +207,7 @@ const Home: React.FC = () => {
         </div>
       </section>
 
-      {/* Featured Inventory */}
+      {/* Featured Inventory / New Arrivals */}
       <section className="py-32 px-6 md:px-12 bg-black">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 reveal gap-8">
@@ -209,7 +218,7 @@ const Home: React.FC = () => {
             <Link to="/inventory" className="text-sm font-bold border-b-2 border-white/20 pb-2 hover:text-zinc-400 hover:border-white transition-all uppercase tracking-widest">View Full Collection</Link>
           </div>
           <div className="reveal">
-            <FeaturedGrid cars={featuredCars} />
+            <FeaturedGrid cars={newArrivals} />
           </div>
         </div>
       </section>

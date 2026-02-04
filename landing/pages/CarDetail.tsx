@@ -1,10 +1,9 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
 import { useUserData } from '../../context/UserDataContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
-import ThreeCarViewer from '../../components/ThreeCarViewer';
 import SEO from '../../components/SEO';
 
 const CarDetail: React.FC = () => {
@@ -12,8 +11,9 @@ const CarDetail: React.FC = () => {
   const { getCarById, favorites, toggleFavorite } = useCars();
   const { addRecentlyViewed } = useUserData();
   const { formatPrice } = useSiteConfig();
-
+  
   const car = getCarById(id || '');
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
 
   useEffect(() => {
     if (id) addRecentlyViewed(id);
@@ -25,12 +25,13 @@ const CarDetail: React.FC = () => {
   }
 
   const isFav = favorites.includes(car.id);
+  const images = car.images && car.images.length > 0 ? car.images : ['https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200'];
 
   const carSchema = {
     "@context": "https://schema.org",
     "@type": "Product",
     "name": `${car.make} ${car.model}`,
-    "image": car.images[0],
+    "image": images,
     "description": car.description,
     "brand": {
       "@type": "Brand",
@@ -42,7 +43,7 @@ const CarDetail: React.FC = () => {
       "priceCurrency": "USD",
       "price": car.price,
       "availability": "https://schema.org/InStock",
-      "itemCondition": car.listingType === 'New' ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition"
+      "itemCondition": (car.categories || []).includes('New') ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition"
     }
   };
 
@@ -55,22 +56,72 @@ const CarDetail: React.FC = () => {
       />
       
       <div className="grid grid-cols-1 lg:grid-cols-2">
-        {/* Left: Visualization */}
-        <div className="relative h-[40vh] md:h-[50vh] lg:h-[calc(100vh-64px)] bg-zinc-900 overflow-hidden lg:sticky lg:top-16">
-          <ThreeCarViewer color="#ffffff" />
-          <div className="absolute top-4 left-4 md:top-8 md:left-8">
-            <Link to="/inventory" className="glass px-4 py-2 rounded-full text-[9px] md:text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all">
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
-              Inventory
-            </Link>
+        {/* Left: Dynamic Image Gallery */}
+        <div className="relative bg-zinc-900 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] flex flex-col">
+          <div className="flex-grow relative overflow-hidden group">
+            <img 
+              src={images[activeImageIndex]} 
+              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
+              alt={`${car.make} ${car.model} main view`}
+            />
+            
+            {/* Gallery Navigation Controls */}
+            {images.length > 1 && (
+              <>
+                <button 
+                  onClick={() => setActiveImageIndex((prev) => (prev === 0 ? images.length - 1 : prev - 1))}
+                  className="absolute left-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full glass border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" /></svg>
+                </button>
+                <button 
+                  onClick={() => setActiveImageIndex((prev) => (prev === images.length - 1 ? 0 : prev + 1))}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full glass border-white/10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-white/10"
+                >
+                  <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5l7 7-7 7" /></svg>
+                </button>
+              </>
+            )}
+
+            <div className="absolute top-4 left-4 md:top-8 md:left-8 flex flex-col gap-4">
+              <Link to="/inventory" className="glass px-4 py-2 rounded-full text-[9px] md:text-xs uppercase tracking-widest flex items-center gap-2 hover:bg-white/10 transition-all w-fit backdrop-blur-xl">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" /></svg>
+                Inventory
+              </Link>
+            </div>
+            
+            {/* Image Indicator */}
+            <div className="absolute bottom-6 left-6 glass px-3 py-1 rounded-full text-[10px] font-mono font-bold tracking-tighter backdrop-blur-xl border-white/5">
+              {activeImageIndex + 1} / {images.length}
+            </div>
           </div>
+
+          {/* Thumbnails Strip */}
+          {images.length > 1 && (
+            <div className="p-4 bg-black/40 backdrop-blur-md border-t border-white/5 overflow-x-auto no-scrollbar flex gap-3">
+              {images.map((img, idx) => (
+                <button
+                  key={idx}
+                  onClick={() => setActiveImageIndex(idx)}
+                  className={`relative shrink-0 w-24 aspect-video rounded-lg overflow-hidden border-2 transition-all ${activeImageIndex === idx ? 'border-white' : 'border-transparent opacity-50 hover:opacity-100'}`}
+                >
+                  <img src={img} className="w-full h-full object-cover" alt={`Thumbnail ${idx + 1}`} />
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* Right: Info */}
-        <div className="p-6 md:p-12 lg:p-16 space-y-8 md:space-y-12">
+        <div className="p-6 md:p-12 lg:p-16 space-y-8 md:space-y-12 bg-black relative z-10">
           <main className="space-y-4">
             <div className="flex items-center justify-between">
-              <span className="text-zinc-500 uppercase tracking-widest text-[9px] md:text-xs">{car.year} Release</span>
+              <div className="flex flex-wrap gap-2">
+                <span className="text-zinc-500 uppercase tracking-widest text-[9px] md:text-xs">{car.year} Release</span>
+                {(car.categories || []).map(cat => (
+                  <span key={cat} className="bg-white/10 px-2 py-0.5 rounded text-[8px] font-bold uppercase tracking-widest text-white border border-white/5">{cat}</span>
+                ))}
+              </div>
               <button 
                 onClick={() => toggleFavorite(car.id)}
                 className={`p-2.5 md:p-3 rounded-full border transition-all ${isFav ? 'bg-white text-black border-white' : 'border-white/10 text-white hover:bg-white/5'}`}
@@ -108,7 +159,7 @@ const CarDetail: React.FC = () => {
           </section>
 
           <div className="pt-8 md:pt-12 flex flex-col sm:flex-row gap-4">
-            <button className="flex-grow bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all text-[10px] md:text-xs">
+            <button className="flex-grow bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all text-[10px] md:text-xs shadow-xl">
               Inquire Now
             </button>
             <button className="flex-grow border border-white/20 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-[10px] md:text-xs">

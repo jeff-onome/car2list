@@ -2,11 +2,13 @@
 import React, { useState } from 'react';
 import { useCars } from '../../context/CarContext';
 import { dbService } from '../../services/database';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 import Swal from 'https://esm.sh/sweetalert2@11';
 import { Car } from '../../types';
 
 const ManageListings: React.FC = () => {
   const { cars } = useCars();
+  const { formatPrice } = useSiteConfig();
   const [activeTab, setActiveTab] = useState<'approved' | 'pending' | 'rejected'>('approved');
 
   const filteredCars = cars.filter(c => c.status === activeTab || (!c.status && activeTab === 'approved'));
@@ -81,25 +83,94 @@ const ManageListings: React.FC = () => {
   };
 
   const handleEditCar = (car: Car) => {
+    const availableCategories = ['New', 'Pre-Owned', 'Rental', 'Limited Edition', 'Auction'];
+    const currentCats = car.categories || [];
+
     Swal.fire({
       title: `<span style="text-transform: uppercase; font-size: 1.25rem;">Edit Masterpiece</span>`,
       html: `
-        <div style="text-align: left; padding: 1rem; font-family: Inter, sans-serif;">
-          <div style="margin-bottom: 1rem;">
-            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Valuation (USD)</label>
-            <input id="swal-price" type="number" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${car.price}">
+        <div style="text-align: left; padding: 1rem; font-family: Inter, sans-serif; color: #a1a1aa; max-height: 70vh; overflow-y: auto;" class="no-scrollbar">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Valuation (USD)</label>
+                <input id="swal-price" type="number" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${car.price}">
+             </div>
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Body Category</label>
+                <select id="swal-type" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
+                  <option value="Luxury" ${car.type === 'Luxury' ? 'selected' : ''}>Luxury</option>
+                  <option value="Sports" ${car.type === 'Sports' ? 'selected' : ''}>Sports</option>
+                  <option value="SUV" ${car.type === 'SUV' ? 'selected' : ''}>SUV</option>
+                  <option value="Classic" ${car.type === 'Classic' ? 'selected' : ''}>Classic</option>
+                </select>
+             </div>
           </div>
-          <div style="margin-bottom: 1rem;">
-            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Category</label>
-            <select id="swal-type" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
-              <option value="Luxury" ${car.type === 'Luxury' ? 'selected' : ''}>Luxury</option>
-              <option value="Sports" ${car.type === 'Sports' ? 'selected' : ''}>Sports</option>
-              <option value="SUV" ${car.type === 'SUV' ? 'selected' : ''}>SUV</option>
-              <option value="Classic" ${car.type === 'Classic' ? 'selected' : ''}>Classic</option>
-            </select>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Power (HP)</label>
+                <input id="swal-hp" type="number" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${car.hp || 0}">
+             </div>
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Acceleration (0-100)</label>
+                <input id="swal-acc" type="text" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${car.acceleration || ''}" placeholder="e.g. 3.2s">
+             </div>
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Fuel Type</label>
+                <select id="swal-fuel" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
+                  <option value="Petrol" ${car.fuel === 'Petrol' ? 'selected' : ''}>Petrol</option>
+                  <option value="Electric" ${car.fuel === 'Electric' ? 'selected' : ''}>Electric</option>
+                  <option value="Hybrid" ${car.fuel === 'Hybrid' ? 'selected' : ''}>Hybrid</option>
+                </select>
+             </div>
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Mileage (MI)</label>
+                <input id="swal-mileage" type="number" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${car.mileage || 0}">
+             </div>
+          </div>
+
+          <div>
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.75rem; letter-spacing: 0.1em;">Market Classifications</label>
+            <div id="swal-cats-container" style="display: flex; flex-wrap: wrap; gap: 8px;">
+              ${availableCategories.map(cat => `
+                <div class="swal-cat-chip ${currentCats.includes(cat) ? 'active' : ''}" data-cat="${cat}">
+                  ${cat}
+                </div>
+              `).join('')}
+            </div>
           </div>
         </div>
+        <style>
+          .swal-cat-chip {
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: 1px solid rgba(255,255,255,0.05);
+            background: #18181b;
+            color: #71717a;
+            font-size: 9px;
+            font-weight: bold;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .swal-cat-chip.active {
+            background: white;
+            color: black;
+            border-color: white;
+          }
+        </style>
       `,
+      didOpen: () => {
+        const chips = document.querySelectorAll('.swal-cat-chip');
+        chips.forEach(chip => {
+          chip.addEventListener('click', () => {
+            chip.classList.toggle('active');
+          });
+        });
+      },
       focusConfirm: false,
       background: '#0a0a0a',
       color: '#fff',
@@ -112,9 +183,16 @@ const ManageListings: React.FC = () => {
         cancelButton: 'text-zinc-500 font-bold text-[10px] uppercase tracking-widest bg-transparent border border-white/10'
       },
       preConfirm: () => {
+        const selectedChips = document.querySelectorAll('.swal-cat-chip.active');
+        const categories = Array.from(selectedChips).map(chip => (chip as HTMLElement).dataset.cat);
         return {
           price: (document.getElementById('swal-price') as HTMLInputElement).value,
-          type: (document.getElementById('swal-type') as HTMLSelectElement).value
+          type: (document.getElementById('swal-type') as HTMLSelectElement).value,
+          hp: (document.getElementById('swal-hp') as HTMLInputElement).value,
+          acceleration: (document.getElementById('swal-acc') as HTMLInputElement).value,
+          fuel: (document.getElementById('swal-fuel') as HTMLSelectElement).value,
+          mileage: (document.getElementById('swal-mileage') as HTMLInputElement).value,
+          categories
         }
       }
     }).then(async (result) => {
@@ -122,12 +200,17 @@ const ManageListings: React.FC = () => {
         try {
           await dbService.updateCar(car.id, {
             price: Number(result.value.price),
-            type: result.value.type as any
+            type: result.value.type as any,
+            hp: Number(result.value.hp),
+            acceleration: result.value.acceleration,
+            fuel: result.value.fuel as any,
+            mileage: Number(result.value.mileage),
+            categories: result.value.categories
           });
 
           Swal.fire({
             title: 'Updated',
-            text: `Listing for the ${car.make} ${car.model} has been synchronized.`,
+            text: `Listing has been synchronized with the new specifications.`,
             icon: 'success',
             background: '#111',
             color: '#fff',
@@ -152,11 +235,10 @@ const ManageListings: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <div>
             <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter text-white">Inventory Control</h1>
-            <p className="text-zinc-500 mt-2 text-sm">Moderating submissions from our network of authorized dealers.</p>
+            <p className="text-zinc-500 mt-2 text-sm uppercase tracking-widest font-bold">Moderating specifications across the global fleet.</p>
           </div>
         </div>
 
-        {/* Status Tabs */}
         <div className="flex gap-2 md:gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
            {tabs.map(tab => (
              <button
@@ -178,10 +260,10 @@ const ManageListings: React.FC = () => {
               <thead>
                 <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5 bg-white/5">
                   <th className="px-6 py-5">Masterpiece</th>
-                  <th className="px-6 py-5">Dealer Source</th>
+                  <th className="px-6 py-5">Source</th>
+                  <th className="px-6 py-5">Classification</th>
                   <th className="px-6 py-5">Valuation</th>
-                  <th className="px-6 py-5">Submission Date</th>
-                  <th className="px-6 py-5 text-right">Actions</th>
+                  <th className="px-6 py-5 text-right">Governance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
@@ -197,13 +279,17 @@ const ManageListings: React.FC = () => {
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                       <span className="text-zinc-400 font-medium text-xs">{car.dealerName || 'Independent Seller'}</span>
+                       <span className="text-zinc-400 font-medium text-xs">{car.dealerName || 'Independent'}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-mono font-bold text-white text-xs md:text-sm">${car.price.toLocaleString()}</span>
+                       <div className="flex flex-wrap gap-1 max-w-[150px]">
+                          {(car.categories || []).map(cat => (
+                            <span key={cat} className="text-[7px] font-bold bg-white/5 border border-white/10 text-zinc-400 px-1.5 py-0.5 rounded uppercase">{cat}</span>
+                          ))}
+                       </div>
                     </td>
-                    <td className="px-6 py-4 text-zinc-500 text-[10px]">
-                      {car.createdAt ? new Date(car.createdAt).toLocaleDateString() : 'N/A'}
+                    <td className="px-6 py-4">
+                      <span className="font-mono font-bold text-white text-xs md:text-sm">{formatPrice(car.price)}</span>
                     </td>
                     <td className="px-6 py-4 text-right">
                       <div className="flex gap-2 md:gap-4 justify-end">
@@ -232,25 +318,13 @@ const ManageListings: React.FC = () => {
                             Edit
                           </button>
                         )}
-
-                        {activeTab === 'rejected' && (
-                           <button 
-                            onClick={() => handleApprove(car)}
-                            className="text-[9px] md:text-[10px] uppercase font-bold text-zinc-400 hover:text-white transition-colors whitespace-nowrap"
-                          >
-                            Re-Approve
-                          </button>
-                        )}
                       </div>
                     </td>
                   </tr>
                 )) : (
                   <tr>
                     <td colSpan={5} className="p-20 text-center">
-                       <div className="flex flex-col items-center gap-4">
-                          <svg className="w-12 h-12 text-zinc-800" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M20 13V6a2 2 0 00-2-2H6a2 2 0 00-2 2v7m16 0v5a2 2 0 01-2 2H6a2 2 0 01-2-2v-5m16 0h-2.586a1 1 0 00-.707.293l-2.414 2.414a1 1 0 01-.707.293h-3.172a1 1 0 01-.707-.293l-2.414-2.414A1 1 0 006.586 13H4" /></svg>
-                          <p className="text-zinc-600 uppercase tracking-widest text-[10px] italic">No items found in this category.</p>
-                       </div>
+                       <p className="text-zinc-600 uppercase tracking-widest text-[10px] italic">Showroom empty for this classification.</p>
                     </td>
                   </tr>
                 )}

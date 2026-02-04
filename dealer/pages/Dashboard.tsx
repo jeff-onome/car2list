@@ -3,13 +3,16 @@ import React from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { useCars } from '../../context/CarContext';
+import { useSiteConfig } from '../../context/SiteConfigContext';
 
 const DealerDashboard: React.FC = () => {
   const { user } = useAuth();
   const { cars } = useCars();
+  const { formatPrice } = useSiteConfig();
   const navigate = useNavigate();
   
   const dealerCars = cars.filter(c => c.dealerId === user?.id);
+  const totalValuation = dealerCars.reduce((acc, c) => acc + c.price, 0);
 
   return (
     <div className="min-h-screen bg-black pt-24 pb-20 px-4 md:px-12">
@@ -24,7 +27,7 @@ const DealerDashboard: React.FC = () => {
               </div>
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-widest text-white">Status: Unverified Dealer</h3>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Submissions restricted to private draft mode. Admin verification required.</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Submissions restricted. Admin verification required to publish listings.</p>
               </div>
             </div>
             <Link to="/dealer/verify" className="w-full lg:w-auto bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl text-center">
@@ -40,14 +43,14 @@ const DealerDashboard: React.FC = () => {
           </div>
           <button 
             onClick={() => navigate('/dealer/add-car')}
-            className="w-full md:w-auto bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl"
+            className={`w-full md:w-auto px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest transition-all shadow-xl ${user?.isVerified ? 'bg-white text-black hover:bg-zinc-200' : 'bg-zinc-900 text-zinc-500 border border-white/5 cursor-not-allowed hover:bg-zinc-800'}`}
           >
-            Enroll New Vehicle
+            {user?.isVerified ? 'Enroll New Vehicle' : 'Enrollment Locked'}
           </button>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
-          <StatCard label="Portfolio Valuation" value={`$${(dealerCars.reduce((acc, c) => acc + c.price, 0) / 1000000).toFixed(1)}M`} />
+          <StatCard label="Portfolio Valuation" value={formatPrice(totalValuation)} />
           <StatCard label="Active Listings" value={dealerCars.length.toString()} />
           <StatCard label="Review Queue" value={dealerCars.filter(c => c.status === 'pending').length.toString()} />
         </div>
@@ -87,7 +90,7 @@ const DealerDashboard: React.FC = () => {
                         </span>
                       </td>
                       <td className="px-6 md:px-8 py-5 text-center">
-                        <span className="font-mono font-bold text-white">${car.price.toLocaleString()}</span>
+                        <span className="font-mono font-bold text-white tracking-tight">{formatPrice(car.price)}</span>
                       </td>
                       <td className="px-6 md:px-8 py-5 text-center">
                         <span className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
@@ -107,7 +110,9 @@ const DealerDashboard: React.FC = () => {
                     <td colSpan={5} className="px-8 py-24 text-center">
                       <svg className="w-12 h-12 text-zinc-800 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" /></svg>
                       <p className="text-zinc-600 uppercase tracking-widest text-[10px] italic">No inventory identified for this profile.</p>
-                      <button onClick={() => navigate('/dealer/add-car')} className="mt-4 bg-white/5 border border-white/10 px-8 py-3 rounded-full text-[10px] uppercase tracking-widest text-white hover:bg-white/10 transition-all font-bold">Enroll First Vehicle</button>
+                      {user?.isVerified && (
+                        <button onClick={() => navigate('/dealer/add-car')} className="mt-4 bg-white/5 border border-white/10 px-8 py-3 rounded-full text-[10px] uppercase tracking-widest text-white hover:bg-white/10 transition-all font-bold">Enroll First Vehicle</button>
+                      )}
                     </td>
                   </tr>
                 )}

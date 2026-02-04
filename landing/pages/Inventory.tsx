@@ -10,8 +10,7 @@ const Inventory: React.FC = () => {
   const { config } = useSiteConfig();
   const [filter, setFilter] = useState({
     type: 'All',
-    make: 'All',
-    listingType: 'All',
+    category: 'All',
     sort: 'newest'
   });
 
@@ -19,9 +18,11 @@ const Inventory: React.FC = () => {
     let result = cars.filter(car => {
       const isApproved = car.status === 'approved';
       const matchType = filter.type === 'All' || car.type === filter.type;
-      const matchMake = filter.make === 'All' || car.make === filter.make;
-      const matchListingType = filter.listingType === 'All' || car.listingType === filter.listingType;
-      return isApproved && matchType && matchMake && matchListingType;
+      // Multi-category check
+      const carCats = car.categories || [];
+      const matchCategory = filter.category === 'All' || carCats.includes(filter.category);
+      
+      return isApproved && matchType && matchCategory;
     });
 
     if (filter.sort === 'price-low') result.sort((a, b) => a.price - b.price);
@@ -42,11 +43,8 @@ const Inventory: React.FC = () => {
   };
 
   const types = ['All', 'Luxury', 'Sports', 'SUV', 'Classic'];
-  const serviceOptions = [
-    { label: 'All Services', value: 'All' },
-    { label: 'Buy New', value: 'New' },
-    { label: 'Buy Old', value: 'Used' },
-    { label: 'Rent', value: 'Rent' }
+  const categoryOptions = [
+    'All', 'New', 'Pre-Owned', 'Rental', 'Limited Edition', 'Auction'
   ];
 
   return (
@@ -66,21 +64,21 @@ const Inventory: React.FC = () => {
         <section className="glass p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] mb-8 md:mb-12 flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
           <div className="flex flex-wrap gap-4 w-full lg:w-auto">
             <div className="flex flex-col gap-2 flex-grow sm:flex-grow-0">
-              <label htmlFor="service-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Service</label>
+              <label htmlFor="category-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2 font-bold">Classification</label>
               <select 
-                id="service-filter"
-                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full"
-                value={filter.listingType}
-                onChange={e => setFilter({ ...filter, listingType: e.target.value })}
+                id="category-filter"
+                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full appearance-none pr-10"
+                value={filter.category}
+                onChange={e => setFilter({ ...filter, category: e.target.value })}
               >
-                {serviceOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                {categoryOptions.map(opt => <option key={opt} value={opt}>{opt}</option>)}
               </select>
             </div>
             <div className="flex flex-col gap-2 flex-grow sm:flex-grow-0">
-              <label htmlFor="category-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Category</label>
+              <label htmlFor="type-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2 font-bold">Body Type</label>
               <select 
-                id="category-filter"
-                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full"
+                id="type-filter"
+                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full appearance-none pr-10"
                 value={filter.type}
                 onChange={e => setFilter({ ...filter, type: e.target.value })}
               >
@@ -90,16 +88,16 @@ const Inventory: React.FC = () => {
           </div>
 
           <div className="flex flex-col gap-2 w-full lg:w-auto">
-            <label htmlFor="sort-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Sort By</label>
+            <label htmlFor="sort-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2 font-bold">Market Sort</label>
             <select 
               id="sort-filter"
-              className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full"
+              className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full appearance-none pr-10"
               value={filter.sort}
               onChange={e => setFilter({ ...filter, sort: e.target.value })}
             >
-              <option value="newest">Newest First</option>
-              <option value="price-low">Price: Low to High</option>
-              <option value="price-high">Price: High to Low</option>
+              <option value="newest">Latest Listings</option>
+              <option value="price-low">Valuation: Ascending</option>
+              <option value="price-high">Valuation: Descending</option>
             </select>
           </div>
         </section>
@@ -113,8 +111,8 @@ const Inventory: React.FC = () => {
             </div>
           ) : (
             <div className="text-center py-20 glass rounded-3xl">
-              <h3 className="text-xl text-zinc-400">No vehicles match your criteria.</h3>
-              <button onClick={() => setFilter({ type: 'All', make: 'All', listingType: 'All', sort: 'newest' })} className="mt-4 text-white underline">Clear all filters</button>
+              <h3 className="text-xl text-zinc-400">No telemetry identified for these parameters.</h3>
+              <button onClick={() => setFilter({ type: 'All', category: 'All', sort: 'newest' })} className="mt-4 text-white underline font-bold uppercase tracking-widest text-[10px]">Reset Parameters</button>
             </div>
           )}
         </section>

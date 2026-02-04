@@ -1,32 +1,79 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useUserData } from '../context/UserDataContext';
+import { useCars } from '../context/CarContext';
+import { dbService } from '../services/database';
+import { User } from '../types';
 
 const Sidebar: React.FC = () => {
   const { user } = useAuth();
   const { isSidebarCollapsed, isMobileSidebarOpen, setMobileSidebarOpen } = useUserData();
+  const { cars } = useCars();
   const location = useLocation();
+  const [users, setUsers] = useState<User[]>([]);
+
+  // Admin-only subscription for global registry counts
+  useEffect(() => {
+    if (user?.role === 'ADMIN') {
+      const unsubscribe = dbService.subscribeToUsers(setUsers);
+      return () => unsubscribe();
+    }
+  }, [user?.role]);
 
   const getLinks = () => {
     if (user?.role === 'ADMIN') {
+      const kycPendingCount = users.filter(u => u.kycDocuments && (u.kycStatus === 'pending' || !u.kycStatus)).length;
+      const fleetPendingCount = cars.filter(c => c.status === 'pending').length;
+      
       return [
         { name: 'Dashboard', path: '/admin/dashboard', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' },
-        { name: 'Registry', path: '/admin/users', icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z' },
+        { 
+          name: 'Registry', 
+          path: '/admin/users', 
+          icon: 'M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z',
+          badge: users.length
+        },
+        { 
+          name: 'KYC Review', 
+          path: '/admin/kyc', 
+          icon: 'M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z',
+          badge: kycPendingCount,
+          badgeColor: 'bg-white text-black'
+        },
         { name: 'Security', path: '/admin/security', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-        { name: 'Enrollment', path: '/admin/add-user', icon: 'M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z' },
-        { name: 'Master Fleet', path: '/admin/listings', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+        { 
+          name: 'Master Fleet', 
+          path: '/admin/listings', 
+          icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+          badge: fleetPendingCount,
+          badgeColor: fleetPendingCount > 0 ? 'bg-amber-500 text-black' : 'bg-white/10 text-zinc-500'
+        },
         { name: 'Deal Manager', path: '/admin/deal', icon: 'M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z' },
         { name: 'Site CMS', path: '/admin/cms', icon: 'M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z' },
       ];
     }
     if (user?.role === 'DEALER') {
+      const rejectedCount = cars.filter(c => c.dealerId === user.id && c.status === 'rejected').length;
+      
       return [
         { name: 'Analytics', path: '/dealer/dashboard', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
-        { name: 'My Fleet', path: '/dealer/listings', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+        { 
+          name: 'My Fleet', 
+          path: '/dealer/listings', 
+          icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10',
+          badge: rejectedCount,
+          badgeColor: rejectedCount > 0 ? 'bg-red-500 text-white animate-pulse' : undefined
+        },
         { name: 'Security', path: '/dealer/security', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },
-        { name: 'Verification', path: '/dealer/verify', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+        { 
+          name: 'Verification', 
+          path: '/dealer/verify', 
+          icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z',
+          badge: user.isVerified ? 0 : 1,
+          badgeColor: 'bg-amber-500 text-black'
+        },
         { name: 'Create Listing', path: '/dealer/add-car', icon: 'M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z' },
       ];
     }
@@ -47,22 +94,36 @@ const Sidebar: React.FC = () => {
     <>
       {/* Desktop Sidebar */}
       <aside className={`fixed left-0 top-16 bottom-0 z-40 glass border-r border-white/5 transition-all duration-300 hidden lg:flex flex-col ${isSidebarCollapsed ? 'w-20' : 'w-64'}`}>
-        <div className="flex-grow p-4 space-y-2 overflow-y-auto overflow-x-hidden">
+        <div className="flex-grow p-4 space-y-2 overflow-y-auto overflow-x-hidden no-scrollbar">
           {links.map((link) => {
             const isActive = location.pathname === link.path;
+            const hasBadge = link.badge !== undefined && link.badge > 0;
+            
             return (
               <Link
                 key={link.path}
                 to={link.path}
-                className={`flex items-center p-4 rounded-2xl transition-all group whitespace-nowrap ${isActive ? 'bg-white text-black shadow-xl' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
+                className={`flex items-center p-4 rounded-2xl transition-all group whitespace-nowrap relative ${isActive ? 'bg-white text-black shadow-xl' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
               >
-                <div className="shrink-0">
+                <div className="shrink-0 relative">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={link.icon} /></svg>
+                  {/* Collapsed Badge (Pip) */}
+                  {isSidebarCollapsed && hasBadge && (
+                    <span className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border border-black shadow-sm ${link.badgeColor || 'bg-white'}`} />
+                  )}
                 </div>
+                
                 {!isSidebarCollapsed && (
-                  <span className="ml-4 text-[10px] uppercase font-bold tracking-widest transition-opacity duration-300">
-                    {link.name}
-                  </span>
+                  <div className="flex justify-between items-center w-full ml-4">
+                    <span className="text-[10px] uppercase font-bold tracking-widest transition-opacity duration-300">
+                      {link.name}
+                    </span>
+                    {hasBadge && (
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border border-white/10 ${link.badgeColor || 'bg-white/10 text-white'}`}>
+                        {link.badge}
+                      </span>
+                    )}
+                  </div>
                 )}
               </Link>
             );
@@ -85,6 +146,8 @@ const Sidebar: React.FC = () => {
           <div className="p-4 space-y-2">
             {links.map((link) => {
               const isActive = location.pathname === link.path;
+              const hasBadge = link.badge !== undefined && link.badge > 0;
+              
               return (
                 <Link
                   key={link.path}
@@ -92,8 +155,17 @@ const Sidebar: React.FC = () => {
                   onClick={() => setMobileSidebarOpen(false)}
                   className={`flex items-center p-4 rounded-2xl transition-all ${isActive ? 'bg-white text-black' : 'text-zinc-500 hover:text-white hover:bg-white/5'}`}
                 >
-                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={link.icon} /></svg>
-                  <span className="ml-4 text-[10px] uppercase font-bold tracking-widest">{link.name}</span>
+                  <div className="flex justify-between items-center w-full">
+                    <div className="flex items-center">
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d={link.icon} /></svg>
+                      <span className="ml-4 text-[10px] uppercase font-bold tracking-widest">{link.name}</span>
+                    </div>
+                    {hasBadge && (
+                      <span className={`px-2 py-0.5 rounded-full text-[9px] font-mono font-bold border border-white/10 ${link.badgeColor || 'bg-white/10 text-zinc-400'}`}>
+                        {link.badge}
+                      </span>
+                    )}
+                  </div>
                 </Link>
               );
             })}

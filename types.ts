@@ -39,7 +39,7 @@ export interface Car {
   isFeatured: boolean;
   dealerId: string;
   dealerName?: string;
-  listingType: 'New' | 'Used' | 'Rent';
+  categories: string[]; // Changed from listingType to categories array
   createdAt?: string;
   status: 'pending' | 'approved' | 'rejected';
   moderationReason?: string;

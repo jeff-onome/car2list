@@ -157,6 +157,14 @@ export const dbService = {
     });
   },
 
+  // Helper to notify all users with ADMIN role
+  async notifyAllAdmins(notification: { title: string; message: string; type: 'info' | 'success' | 'warning' }) {
+    const users = await this.getUsers();
+    const admins = users.filter(u => u.role === 'ADMIN');
+    const promises = admins.map(admin => this.createNotification(admin.id, notification));
+    await Promise.all(promises);
+  },
+
   async markNotificationRead(userId: string, notificationId: string) {
     await update(ref(db, `notifications/${userId}/${notificationId}`), { read: true });
   },
