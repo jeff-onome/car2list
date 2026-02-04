@@ -9,7 +9,7 @@ import { Car } from '../../types';
 const ManageListings: React.FC = () => {
   const { cars } = useCars();
   const { formatPrice } = useSiteConfig();
-  const [activeTab, setActiveTab] = useState<'approved' | 'pending' | 'rejected'>('approved');
+  const [activeTab, setActiveTab] = useState<'approved' | 'pending' | 'rejected' | 'archived'>('approved');
 
   const filteredCars = cars.filter(c => c.status === activeTab || (!c.status && activeTab === 'approved'));
 
@@ -27,7 +27,11 @@ const ManageListings: React.FC = () => {
 
     if (confirm.isConfirmed) {
       try {
-        await dbService.updateCar(car.id, { status: 'approved', moderationReason: '' });
+        await dbService.updateCar(car.id, { 
+          status: 'approved', 
+          moderationReason: null as any, 
+          archivedBy: null as any 
+        });
         
         // Notify Dealer
         if (car.dealerId) {
@@ -40,6 +44,7 @@ const ManageListings: React.FC = () => {
 
         Swal.fire('Success', 'Listing has been published.', 'success');
       } catch (e) {
+        console.error("Approve error:", e);
         Swal.fire('Error', 'Action failed.', 'error');
       }
     }
@@ -64,7 +69,11 @@ const ManageListings: React.FC = () => {
 
     if (isConfirmed) {
       try {
-        await dbService.updateCar(car.id, { status: 'rejected', moderationReason: reason || 'Policy Violation' });
+        await dbService.updateCar(car.id, { 
+          status: 'rejected', 
+          moderationReason: reason || 'Policy Violation', 
+          archivedBy: null as any 
+        });
         
         // Notify Dealer
         if (car.dealerId) {
@@ -77,7 +86,88 @@ const ManageListings: React.FC = () => {
 
         Swal.fire('Rejected', 'The dealer has been notified.', 'info');
       } catch (e) {
+        console.error("Reject error:", e);
         Swal.fire('Error', 'Action failed.', 'error');
+      }
+    }
+  };
+
+  const handleArchive = async (car: Car) => {
+    const confirm = await Swal.fire({
+      title: 'Archive Masterpiece?',
+      text: 'Listing will be hidden from public view and restricted from dealer restoration.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'ARCHIVE',
+      confirmButtonColor: '#71717a',
+      background: '#0a0a0a',
+      color: '#fff'
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await dbService.updateCar(car.id, { status: 'archived', archivedBy: 'ADMIN' });
+        Swal.fire('Archived', 'Listing moved to storage with administrative lock.', 'success');
+      } catch (e) {
+        console.error("Archive error:", e);
+        Swal.fire('Error', 'Update failed.', 'error');
+      }
+    }
+  };
+
+  const handleRestore = async (car: Car) => {
+    const confirm = await Swal.fire({
+      title: 'Restore to Showroom?',
+      text: `Reinstate the ${car.make} ${car.model} to the public catalog?`,
+      icon: 'info',
+      showCancelButton: true,
+      confirmButtonText: 'RESTORE',
+      confirmButtonColor: '#22c55e',
+      background: '#0a0a0a',
+      color: '#fff'
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await dbService.updateCar(car.id, { 
+          status: 'approved', 
+          archivedBy: null as any,
+          moderationReason: null as any
+        });
+        if (car.dealerId) {
+          await dbService.createNotification(car.dealerId, {
+            title: 'Inventory Restored',
+            message: `The administration has restored your ${car.make} ${car.model} listing.`,
+            type: 'success'
+          });
+        }
+        Swal.fire('Restored', 'Asset is now live.', 'success');
+      } catch (e) {
+        console.error("Restore error:", e);
+        Swal.fire('Error', 'Action failed.', 'error');
+      }
+    }
+  };
+
+  const handleDelete = async (car: Car) => {
+    const confirm = await Swal.fire({
+      title: 'PERMANENT REMOVAL',
+      text: `Are you certain? This will completely purge the ${car.make} ${car.model} from the global database. This action cannot be reversed.`,
+      icon: 'error',
+      showCancelButton: true,
+      confirmButtonText: 'DELETE PERMANENTLY',
+      confirmButtonColor: '#ef4444',
+      background: '#0a0a0a',
+      color: '#fff'
+    });
+
+    if (confirm.isConfirmed) {
+      try {
+        await dbService.deleteCar(car.id);
+        Swal.fire('Deleted', 'Asset purged from registry.', 'success');
+      } catch (e) {
+        console.error("Delete error:", e);
+        Swal.fire('Error', 'Purge failed.', 'error');
       }
     }
   };
@@ -226,7 +316,8 @@ const ManageListings: React.FC = () => {
   const tabs = [
     { id: 'pending', name: 'Queue', count: cars.filter(c => c.status === 'pending').length },
     { id: 'approved', name: 'Live', count: cars.filter(c => c.status === 'approved' || !c.status).length },
-    { id: 'rejected', name: 'Archive', count: cars.filter(c => c.status === 'rejected').length }
+    { id: 'rejected', name: 'Rejected', count: cars.filter(c => c.status === 'rejected').length },
+    { id: 'archived', name: 'Archived', count: cars.filter(c => c.status === 'archived').length }
   ];
 
   return (
@@ -286,6 +377,11 @@ const ManageListings: React.FC = () => {
                           {(car.categories || []).map(cat => (
                             <span key={cat} className="text-[7px] font-bold bg-white/5 border border-white/10 text-zinc-400 px-1.5 py-0.5 rounded uppercase">{cat}</span>
                           ))}
+                          {car.status === 'archived' && (
+                             <span className={`text-[7px] font-bold px-1.5 py-0.5 rounded uppercase border ${car.archivedBy === 'ADMIN' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-zinc-500/10 text-zinc-500 border-zinc-500/20'}`}>
+                                {car.archivedBy === 'ADMIN' ? 'Admin Lock' : 'Dealer Hide'}
+                             </span>
+                          )}
                        </div>
                     </td>
                     <td className="px-6 py-4">
@@ -310,13 +406,36 @@ const ManageListings: React.FC = () => {
                           </>
                         )}
                         
-                        {(activeTab === 'approved' || activeTab === 'rejected') && (
-                          <button 
-                            onClick={() => handleEditCar(car)}
-                            className="text-[9px] md:text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors"
-                          >
-                            Edit
-                          </button>
+                        {(activeTab === 'approved' || activeTab === 'rejected' || activeTab === 'archived') && (
+                          <div className="flex items-center gap-3">
+                            <button 
+                              onClick={() => handleEditCar(car)}
+                              className="text-[9px] md:text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors"
+                            >
+                              Edit
+                            </button>
+                            {activeTab === 'archived' ? (
+                              <button 
+                                onClick={() => handleRestore(car)}
+                                className="text-[9px] md:text-[10px] uppercase font-bold text-emerald-500 hover:text-emerald-400 transition-colors"
+                              >
+                                Restore
+                              </button>
+                            ) : (
+                              <button 
+                                onClick={() => handleArchive(car)}
+                                className="text-[9px] md:text-[10px] uppercase font-bold text-zinc-600 hover:text-white transition-colors"
+                              >
+                                Archive
+                              </button>
+                            )}
+                            <button 
+                              onClick={() => handleDelete(car)}
+                              className="text-[9px] md:text-[10px] uppercase font-bold text-red-500/40 hover:text-red-500 transition-colors"
+                            >
+                              Delete
+                            </button>
+                          </div>
                         )}
                       </div>
                     </td>

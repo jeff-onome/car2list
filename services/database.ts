@@ -106,7 +106,7 @@ export const dbService = {
     });
   },
 
-  // --- Purchases & Bookings ---
+  // --- Purchases ---
   subscribeToPurchases(userId: string, callback: (purchases: any[]) => void) {
     const purchaseRef = ref(db, `purchases/${userId}`);
     return onValue(purchaseRef, (snapshot) => {
@@ -119,12 +119,56 @@ export const dbService = {
     });
   },
 
+  // --- REFACTORED GLOBAL BOOKINGS ---
+  
+  async createBooking(booking: any) {
+    const bookingsRef = ref(db, 'bookings/all');
+    const newBookingRef = push(bookingsRef);
+    const bookingData = {
+      ...booking,
+      id: newBookingRef.key,
+      createdAt: new Date().toISOString(),
+      status: 'Confirmed'
+    };
+    await set(newBookingRef, bookingData);
+    return newBookingRef.key;
+  },
+
   subscribeToBookings(userId: string, callback: (bookings: any[]) => void) {
-    const bookingsRef = ref(db, `bookings/${userId}`);
+    const bookingsRef = ref(db, 'bookings/all');
     return onValue(bookingsRef, (snapshot) => {
       if (snapshot.exists()) {
         const data = snapshot.val();
-        callback(Object.keys(data).map(key => ({ ...data[key], id: key })));
+        const all = Object.keys(data).map(key => ({ ...data[key], id: key }));
+        // Filter for specific user
+        callback(all.filter(b => b.userId === userId).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      } else {
+        callback([]);
+      }
+    });
+  },
+
+  subscribeToDealerBookings(dealerId: string, callback: (bookings: any[]) => void) {
+    const bookingsRef = ref(db, 'bookings/all');
+    return onValue(bookingsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const all = Object.keys(data).map(key => ({ ...data[key], id: key }));
+        // Filter for specific dealer's cars
+        callback(all.filter(b => b.dealerId === dealerId).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+      } else {
+        callback([]);
+      }
+    });
+  },
+
+  subscribeToAllBookings(callback: (bookings: any[]) => void) {
+    const bookingsRef = ref(db, 'bookings/all');
+    return onValue(bookingsRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        const all = Object.keys(data).map(key => ({ ...data[key], id: key }));
+        callback(all.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
       } else {
         callback([]);
       }

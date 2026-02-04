@@ -28,15 +28,16 @@ const AIChatAssistant: React.FC = () => {
     setIsTyping(true);
 
     try {
+      // Truncate summary to keep the payload size manageable and avoid environment timeouts/aborts
       const inventorySummary = cars.length > 0 
-        ? cars.map(c => `${c.make} ${c.model} (${c.year}) for $${c.price}`).join(', ')
+        ? cars.slice(0, 15).map(c => `${c.make} ${c.model} (${c.year}) for $${c.price}`).join(', ')
         : "Currently updating our private collection...";
         
       const aiResponse = await aiService.getCarAdvice(userMsg, inventorySummary);
       
       setMessages(prev => [...prev, { role: 'ai', text: aiResponse || 'Our concierge service is currently undergoing maintenance.' }]);
     } catch (error) {
-      console.error("Chat Error:", error);
+      console.error("Chat Error (Caught in Component):", error);
       setMessages(prev => [...prev, { role: 'ai', text: 'I encountered a technical synchronization error. Please try again in a moment.' }]);
     } finally {
       setIsTyping(false);

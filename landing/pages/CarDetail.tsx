@@ -1,16 +1,21 @@
 
 import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
+import { useAuth } from '../../context/AuthContext';
 import { useUserData } from '../../context/UserDataContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import { dbService } from '../../services/database';
 import SEO from '../../components/SEO';
+import Swal from 'https://esm.sh/sweetalert2@11';
 
 const CarDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
+  const { user } = useAuth();
   const { getCarById, favorites, toggleFavorite } = useCars();
   const { addRecentlyViewed } = useUserData();
   const { formatPrice } = useSiteConfig();
+  const navigate = useNavigate();
   
   const car = getCarById(id || '');
   const [activeImageIndex, setActiveImageIndex] = useState(0);
@@ -26,6 +31,158 @@ const CarDetail: React.FC = () => {
 
   const isFav = favorites.includes(car.id);
   const images = car.images && car.images.length > 0 ? car.images : ['https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200'];
+  const isRental = car.categories?.includes('Rental');
+
+  const openBookingModal = async (type: 'Rental' | 'Test Drive') => {
+    if (!user) {
+      Swal.fire({
+        title: 'Authentication Required',
+        text: `Please sign in to your AutoSphere account to initialize a ${type.toLowerCase()} reservation.`,
+        icon: 'info',
+        background: '#0a0a0a',
+        color: '#fff',
+        confirmButtonColor: '#fff',
+        confirmButtonText: 'SIGN IN',
+        showCancelButton: true,
+        cancelButtonText: 'CANCEL'
+      }).then((result) => {
+        if (result.isConfirmed) navigate('/login');
+      });
+      return;
+    }
+
+    const { value: formValues } = await Swal.fire({
+      title: `<span style="text-transform: uppercase; font-size: 1.25rem;">${type} Reservation</span>`,
+      html: `
+        <div style="text-align: left; padding: 0.5rem; font-family: Inter, sans-serif; color: #a1a1aa; max-height: 70vh; overflow-y: auto;" class="no-scrollbar">
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Communication Point (Email)</label>
+            <input id="swal-email" type="email" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${user.email}">
+          </div>
+          
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Booking Commencement</label>
+                <input id="swal-time" type="datetime-local" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
+             </div>
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Duration (${type === 'Rental' ? 'Days' : 'Hours'})</label>
+                <input id="swal-duration" type="number" min="1" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${type === 'Rental' ? '1' : '2'}">
+             </div>
+          </div>
+
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Delivery/Pickup Location</label>
+            <input id="swal-location" type="text" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" placeholder="Geneva International, Private Hangar...">
+          </div>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Fleet Size (Quantity)</label>
+                <input id="swal-count" type="number" min="1" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="1">
+             </div>
+             <div>
+                <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Security Detail</label>
+                <select id="swal-security" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
+                  <option value="No">No</option>
+                  <option value="Yes">Yes (Tier 1 Protection)</option>
+                </select>
+             </div>
+          </div>
+        </div>
+      `,
+      focusConfirm: false,
+      background: '#0a0a0a',
+      color: '#fff',
+      showCancelButton: true,
+      confirmButtonText: `CONFIRM ${type.toUpperCase()}`,
+      cancelButtonText: 'CANCEL',
+      customClass: {
+        popup: 'glass rounded-[2rem] border border-white/10 shadow-2xl',
+        confirmButton: 'bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest',
+        cancelButton: 'text-zinc-500 font-bold text-[10px] uppercase tracking-widest bg-transparent border border-white/10'
+      },
+      preConfirm: () => {
+        const email = (document.getElementById('swal-email') as HTMLInputElement).value;
+        const time = (document.getElementById('swal-time') as HTMLInputElement).value;
+        const location = (document.getElementById('swal-location') as HTMLInputElement).value;
+        const duration = (document.getElementById('swal-duration') as HTMLInputElement).value;
+        const count = (document.getElementById('swal-count') as HTMLInputElement).value;
+        const security = (document.getElementById('swal-security') as HTMLSelectElement).value;
+
+        if (!email || !time || !location || !duration) {
+          Swal.showValidationMessage('Please fill all critical logistics details');
+          return false;
+        }
+        return { email, time, location, duration, count, security };
+      }
+    });
+
+    if (formValues) {
+      try {
+        await dbService.createBooking({
+          bookingType: type,
+          userId: user.id,
+          userName: user.name,
+          dealerId: car.dealerId,
+          dealerName: car.dealerName || 'Independent',
+          car: `${car.make} ${car.model}`,
+          carId: car.id,
+          date: formValues.time.split('T')[0],
+          time: formValues.time.split('T')[1],
+          location: formValues.location,
+          duration: formValues.duration,
+          quantity: formValues.count,
+          securityOption: formValues.security,
+          email: formValues.email
+        });
+
+        // Notify User
+        await dbService.createNotification(user.id, {
+          title: `${type} Confirmed`,
+          message: `Your ${car.make} ${type.toLowerCase()} for ${formValues.time} is being processed.`,
+          type: 'success'
+        });
+
+        // Notify Dealer
+        if (car.dealerId) {
+          await dbService.createNotification(car.dealerId, {
+            title: `New ${type} Request`,
+            message: `A client has requested a ${type.toLowerCase()} experience for your ${car.make} ${car.model}.`,
+            type: 'info'
+          });
+        }
+
+        Swal.fire({
+          title: 'Experience Logged',
+          text: `Your elite ${type.toLowerCase()} has been scheduled. Check your portal for status updates.`,
+          icon: 'success',
+          background: '#111',
+          color: '#fff',
+          confirmButtonColor: '#fff'
+        });
+      } catch (error) {
+        Swal.fire('Sync Error', `Failed to initialize ${type.toLowerCase()}.`, 'error');
+      }
+    }
+  };
+
+  const handlePrimaryAction = async () => {
+    if (isRental) {
+      await openBookingModal('Rental');
+    } else {
+      // Buy Now Flow
+      Swal.fire({
+        title: 'Acquisition Protocol',
+        text: `Connecting you to a private specialist for the purchase of this ${car.make}. You will receive a bespoke acquisition proposal within 2 hours.`,
+        icon: 'info',
+        background: '#0a0a0a',
+        color: '#fff',
+        confirmButtonColor: '#fff',
+        confirmButtonText: 'PROCEED'
+      });
+    }
+  };
 
   const carSchema = {
     "@context": "https://schema.org",
@@ -131,7 +288,10 @@ const CarDetail: React.FC = () => {
               </button>
             </div>
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold uppercase tracking-tighter leading-none">{car.make} {car.model}</h1>
-            <p className="text-2xl md:text-3xl font-light text-zinc-300">{formatPrice(car.price)}</p>
+            <p className="text-2xl md:text-3xl font-light text-zinc-300">
+              {formatPrice(car.price)}
+              {isRental && <span className="text-sm text-zinc-500 lowercase ml-2 font-medium">/ per day</span>}
+            </p>
           </main>
 
           <article className="text-zinc-400 leading-relaxed text-base md:text-lg max-w-xl">
@@ -159,10 +319,27 @@ const CarDetail: React.FC = () => {
           </section>
 
           <div className="pt-8 md:pt-12 flex flex-col sm:flex-row gap-4">
-            <button className="flex-grow bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all text-[10px] md:text-xs shadow-xl">
-              Inquire Now
+            <button 
+              onClick={handlePrimaryAction}
+              className="flex-grow bg-white text-black py-4 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all text-[10px] md:text-xs shadow-xl flex items-center justify-center gap-3 group"
+            >
+              {isRental ? (
+                <>
+                  <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                  Rent Now
+                </>
+              ) : (
+                <>
+                  <svg className="w-4 h-4 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" /></svg>
+                  Buy Now
+                </>
+              )}
             </button>
-            <button className="flex-grow border border-white/20 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-[10px] md:text-xs">
+            <button 
+              onClick={() => openBookingModal('Test Drive')}
+              className="flex-grow border border-white/20 py-4 rounded-full font-bold uppercase tracking-widest hover:bg-white/5 transition-all text-[10px] md:text-xs flex items-center justify-center gap-3 group"
+            >
+              <svg className="w-4 h-4 transition-transform group-hover:rotate-12" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
               Book Test Drive
             </button>
           </div>

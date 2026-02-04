@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,6 +5,15 @@ import { useUserData } from '../context/UserDataContext';
 import { useCars } from '../context/CarContext';
 import { dbService } from '../services/database';
 import { User } from '../types';
+
+// Defined interface for sidebar links to ensure TypeScript recognition of optional badge properties
+interface SidebarLink {
+  name: string;
+  path: string;
+  icon: string;
+  badge?: number;
+  badgeColor?: string;
+}
 
 const Sidebar: React.FC = () => {
   const { user } = useAuth();
@@ -22,12 +30,17 @@ const Sidebar: React.FC = () => {
     }
   }, [user?.role]);
 
-  const getLinks = () => {
+  const getLinks = (): SidebarLink[] => {
+    const commonLinks: SidebarLink[] = [
+      { name: 'Public Inventory', path: '/inventory', icon: 'M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z' },
+    ];
+
     if (user?.role === 'ADMIN') {
       const kycPendingCount = users.filter(u => u.kycDocuments && (u.kycStatus === 'pending' || !u.kycStatus)).length;
       const fleetPendingCount = cars.filter(c => c.status === 'pending').length;
       
       return [
+        ...commonLinks,
         { name: 'Dashboard', path: '/admin/dashboard', icon: 'M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z' },
         { 
           name: 'Registry', 
@@ -58,6 +71,7 @@ const Sidebar: React.FC = () => {
       const rejectedCount = cars.filter(c => c.dealerId === user.id && c.status === 'rejected').length;
       
       return [
+        ...commonLinks,
         { name: 'Analytics', path: '/dealer/dashboard', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
         { 
           name: 'My Fleet', 
@@ -78,6 +92,7 @@ const Sidebar: React.FC = () => {
       ];
     }
     return [
+      ...commonLinks,
       { name: 'Overview', path: '/user/overview', icon: 'M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z' },
       { name: 'My Profile', path: '/user/profile', icon: 'M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z' },
       { name: 'Security', path: '/user/security', icon: 'M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z' },

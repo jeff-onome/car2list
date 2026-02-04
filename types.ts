@@ -41,7 +41,8 @@ export interface Car {
   dealerName?: string;
   categories: string[]; // Changed from listingType to categories array
   createdAt?: string;
-  status: 'pending' | 'approved' | 'rejected';
+  status: 'pending' | 'approved' | 'rejected' | 'archived';
+  archivedBy?: 'ADMIN' | 'DEALER';
   moderationReason?: string;
 }
 

@@ -134,32 +134,36 @@ const Header: React.FC = () => {
             </button>
 
             {isNotifyOpen && (
-              <div className="absolute right-0 mt-3 w-80 bg-zinc-950 rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[100]">
+              <div className="absolute right-0 sm:right-0 mt-3 w-[calc(100vw-2rem)] sm:w-80 max-w-sm bg-zinc-950 rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[100] transform origin-top-right">
                 <div className="px-4 py-3 border-b border-white/5 flex justify-between items-center bg-zinc-950">
                   <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Notifications</h4>
-                  <button onClick={clearNotifications} className="text-[8px] text-zinc-600 uppercase hover:text-white transition-colors">Clear All</button>
+                  <button onClick={clearNotifications} className="text-[8px] text-zinc-600 uppercase font-bold hover:text-white transition-colors">Clear All</button>
                 </div>
-                <div className="max-h-[350px] overflow-y-auto bg-zinc-950">
+                <div className="max-h-[350px] overflow-y-auto bg-zinc-950 no-scrollbar">
                   {notifications.length > 0 ? (
                     notifications.map((n) => (
                       <div 
                         key={n.id} 
                         onClick={() => markNotificationAsRead(n.id)}
-                        className={`p-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5 last:border-0 ${!n.read ? 'bg-white/[0.02]' : ''}`}
+                        className={`p-4 hover:bg-white/5 transition-colors cursor-pointer border-b border-white/5 last:border-0 ${!n.read ? 'bg-white/[0.02]' : 'opacity-60'}`}
                       >
                         <div className="flex items-start gap-3">
-                          <div className={`w-1.5 h-1.5 rounded-full mt-1.5 shrink-0 ${n.type === 'success' ? 'bg-green-500' : n.type === 'warning' ? 'bg-amber-500' : 'bg-blue-500'}`} />
-                          <div className="space-y-1">
-                            <p className={`text-xs font-bold ${n.read ? 'text-zinc-400' : 'text-white'}`}>{n.title}</p>
-                            <p className="text-[10px] text-zinc-500 leading-relaxed">{n.message}</p>
-                            <p className="text-[8px] text-zinc-600 uppercase tracking-tighter pt-1">{formatTime(n.time)}</p>
+                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.type === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.3)]' : n.type === 'warning' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.3)]' : 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.3)]'}`} />
+                          <div className="space-y-1 overflow-hidden">
+                            <p className={`text-[11px] md:text-xs font-bold uppercase tracking-tight truncate ${n.read ? 'text-zinc-400' : 'text-white'}`}>{n.title}</p>
+                            <p className="text-[10px] text-zinc-500 leading-relaxed line-clamp-2">{n.message}</p>
+                            <div className="flex items-center gap-2 pt-1">
+                               <p className="text-[8px] text-zinc-600 uppercase tracking-tighter font-mono">{formatTime(n.time)}</p>
+                               {!n.read && <span className="text-[7px] bg-white/10 text-white px-1.5 rounded-full font-bold">NEW</span>}
+                            </div>
                           </div>
                         </div>
                       </div>
                     ))
                   ) : (
                     <div className="p-10 text-center bg-zinc-950">
-                      <p className="text-[10px] text-zinc-600 uppercase tracking-widest">No notifications identified</p>
+                      <svg className="w-8 h-8 text-zinc-800 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
+                      <p className="text-[10px] text-zinc-600 uppercase tracking-widest font-bold">No active pulses</p>
                     </div>
                   )}
                 </div>
