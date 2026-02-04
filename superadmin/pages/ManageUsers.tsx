@@ -137,35 +137,35 @@ const ManageUsers: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
+    <div className="min-h-screen bg-black pt-24 pb-20 px-4 md:px-12">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-12 gap-6">
-          <div>
-            <h1 className="text-4xl font-bold uppercase tracking-tighter text-white">Identity Registry</h1>
-            <p className="text-zinc-500 mt-2">Secure management of the AutoSphere member base.</p>
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 md:mb-12 gap-6">
+          <div className="w-full md:w-auto">
+            <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter text-white">Identity Registry</h1>
+            <p className="text-zinc-500 mt-2 text-sm">Secure management of the AutoSphere member base.</p>
           </div>
-          <div className="flex gap-4">
+          <div className="flex flex-wrap gap-4 w-full md:w-auto">
             <button 
               onClick={() => handleBulkSuspension(true)}
-              className="bg-red-500/10 text-red-500 border border-red-500/20 px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
+              className="flex-grow md:flex-grow-0 bg-red-500/10 text-red-500 border border-red-500/20 px-4 md:px-6 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
             >
               Suspend All
             </button>
             <button 
               onClick={() => handleBulkSuspension(false)}
-              className="bg-green-500/10 text-green-500 border border-green-500/20 px-6 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all"
+              className="flex-grow md:flex-grow-0 bg-green-500/10 text-green-500 border border-green-500/20 px-4 md:px-6 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-green-500 hover:text-white transition-all"
             >
               Restore All
             </button>
-            <Link to="/admin/add-user" className="bg-white text-black px-8 py-3 rounded-full font-bold text-xs uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl">
+            <Link to="/admin/add-user" className="w-full md:w-auto text-center bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] md:text-xs uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl">
               Enroll New Identity
             </Link>
           </div>
         </div>
         
-        <div className="glass rounded-3xl overflow-hidden border-white/5 shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+        <div className="glass rounded-2xl md:rounded-[2.5rem] overflow-hidden border-white/5 shadow-2xl">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[800px]">
               <thead>
                 <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5 bg-white/5">
                   <th className="px-6 py-5">Identity</th>
@@ -180,7 +180,7 @@ const ManageUsers: React.FC = () => {
                   <tr key={u.id} className={`hover:bg-white/5 transition-colors group ${u.isSuspended ? 'opacity-60 bg-red-500/[0.02]' : ''}`}>
                     <td className="px-6 py-4">
                       <p className="font-bold text-white tracking-tight">{u.name}</p>
-                      <p className="text-xs text-zinc-500 lowercase font-mono">{u.email}</p>
+                      <p className="text-[10px] text-zinc-500 lowercase font-mono">{u.email}</p>
                     </td>
                     <td className="px-6 py-4">
                       <span className="uppercase tracking-[0.2em] text-[10px] font-bold text-zinc-400">{u.role}</span>

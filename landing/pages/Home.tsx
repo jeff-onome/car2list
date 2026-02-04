@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
@@ -136,10 +135,16 @@ const Home: React.FC = () => {
                 <div className="w-full lg:w-3/5 relative min-h-[400px]">
                    <img src={deal.image} className="absolute inset-0 w-full h-full object-cover" alt={`Exclusive Deal: ${deal.make} ${deal.model}`} loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent lg:hidden" />
-                   <div className="absolute bottom-10 left-10">
-                      <span className="bg-white/20 backdrop-blur-md px-4 py-2 rounded-full text-xs font-bold uppercase tracking-widest border border-white/30">
-                         Limited Edition • {formatPrice(deal.price)}
-                      </span>
+                   
+                   {/* Responsive Limited Edition Badge - Improved for long price amounts */}
+                   <div className="absolute bottom-6 left-6 right-6 md:right-auto md:bottom-10 md:left-10 pointer-events-none flex">
+                      <div className="bg-white/10 backdrop-blur-xl px-4 py-3 rounded-2xl md:rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest border border-white/20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center max-w-full shadow-2xl">
+                         <span className="text-white/60 whitespace-nowrap">Limited Edition</span>
+                         <span className="hidden md:inline text-white/20">•</span>
+                         <span className="text-white whitespace-normal break-all md:break-normal">
+                            {formatPrice(deal.price)}
+                         </span>
+                      </div>
                    </div>
                 </div>
                 <div className="w-full lg:w-2/5 p-10 md:p-16 flex flex-col justify-center space-y-10 bg-zinc-950/50">

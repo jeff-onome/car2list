@@ -141,28 +141,28 @@ const ManageListings: React.FC = () => {
   };
 
   const tabs = [
-    { id: 'pending', name: 'Moderation Queue', count: cars.filter(c => c.status === 'pending').length },
-    { id: 'approved', name: 'Live Listings', count: cars.filter(c => c.status === 'approved' || !c.status).length },
-    { id: 'rejected', name: 'Rejected Archive', count: cars.filter(c => c.status === 'rejected').length }
+    { id: 'pending', name: 'Queue', count: cars.filter(c => c.status === 'pending').length },
+    { id: 'approved', name: 'Live', count: cars.filter(c => c.status === 'approved' || !c.status).length },
+    { id: 'rejected', name: 'Archive', count: cars.filter(c => c.status === 'rejected').length }
   ];
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
+    <div className="min-h-screen bg-black pt-24 pb-20 px-4 md:px-12">
       <div className="max-w-7xl mx-auto">
-        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-8">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
           <div>
-            <h1 className="text-4xl font-bold uppercase tracking-tighter text-white">Inventory Control</h1>
-            <p className="text-zinc-500 mt-2">Moderating submissions from our network of authorized dealers.</p>
+            <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter text-white">Inventory Control</h1>
+            <p className="text-zinc-500 mt-2 text-sm">Moderating submissions from our network of authorized dealers.</p>
           </div>
         </div>
 
         {/* Status Tabs */}
-        <div className="flex gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
+        <div className="flex gap-2 md:gap-4 mb-8 overflow-x-auto no-scrollbar pb-2">
            {tabs.map(tab => (
              <button
                key={tab.id}
                onClick={() => setActiveTab(tab.id as any)}
-               className={`px-8 py-3 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap flex items-center gap-3 ${activeTab === tab.id ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'}`}
+               className={`px-6 md:px-8 py-2.5 rounded-full text-[10px] uppercase font-bold tracking-widest transition-all whitespace-nowrap flex items-center gap-2 md:gap-3 ${activeTab === tab.id ? 'bg-white text-black' : 'bg-zinc-900 text-zinc-500 hover:bg-zinc-800'}`}
              >
                {tab.name}
                <span className={`px-2 py-0.5 rounded-full text-[8px] ${activeTab === tab.id ? 'bg-black text-white' : 'bg-white/10 text-zinc-400'}`}>
@@ -172,9 +172,9 @@ const ManageListings: React.FC = () => {
            ))}
         </div>
 
-        <div className="glass rounded-3xl overflow-hidden border-white/5 shadow-2xl">
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+        <div className="glass rounded-2xl md:rounded-[3rem] overflow-hidden border-white/5 shadow-2xl">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[800px]">
               <thead>
                 <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5 bg-white/5">
                   <th className="px-6 py-5">Masterpiece</th>
@@ -189,35 +189,35 @@ const ManageListings: React.FC = () => {
                   <tr key={car.id} className="text-sm hover:bg-white/5 transition-colors group">
                     <td className="px-6 py-4">
                       <div className="flex items-center gap-4">
-                        <img src={car.images[0]} className="w-12 h-12 rounded-lg object-cover border border-white/10" alt="" />
+                        <img src={car.images[0]} className="w-10 h-10 md:w-12 md:h-12 rounded-lg object-cover border border-white/10" alt="" />
                         <div>
-                          <p className="font-bold text-white uppercase tracking-tight">{car.make} {car.model}</p>
+                          <p className="font-bold text-white uppercase tracking-tight text-xs md:text-sm">{car.make} {car.model}</p>
                           <p className="text-[10px] text-zinc-500">{car.year} • {car.type}</p>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4">
-                       <span className="text-zinc-400 font-medium">{car.dealerName || 'Independent Seller'}</span>
+                       <span className="text-zinc-400 font-medium text-xs">{car.dealerName || 'Independent Seller'}</span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className="font-mono font-bold text-white">${car.price.toLocaleString()}</span>
+                      <span className="font-mono font-bold text-white text-xs md:text-sm">${car.price.toLocaleString()}</span>
                     </td>
-                    <td className="px-6 py-4 text-zinc-500 text-xs">
+                    <td className="px-6 py-4 text-zinc-500 text-[10px]">
                       {car.createdAt ? new Date(car.createdAt).toLocaleDateString() : 'N/A'}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      <div className="flex gap-4 justify-end">
+                      <div className="flex gap-2 md:gap-4 justify-end">
                         {activeTab === 'pending' && (
                           <>
                             <button 
                               onClick={() => handleApprove(car)}
-                              className="bg-green-500/10 text-green-500 px-4 py-1.5 rounded-full text-[9px] uppercase font-bold tracking-widest hover:bg-green-500 hover:text-white transition-all"
+                              className="bg-green-500/10 text-green-500 px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[9px] uppercase font-bold tracking-widest hover:bg-green-500 hover:text-white transition-all whitespace-nowrap"
                             >
                               Approve
                             </button>
                             <button 
                               onClick={() => handleReject(car)}
-                              className="bg-red-500/10 text-red-500 px-4 py-1.5 rounded-full text-[9px] uppercase font-bold tracking-widest hover:bg-red-500 hover:text-white transition-all"
+                              className="bg-red-500/10 text-red-500 px-3 md:px-4 py-1.5 rounded-full text-[8px] md:text-[9px] uppercase font-bold tracking-widest hover:bg-red-500 hover:text-white transition-all whitespace-nowrap"
                             >
                               Reject
                             </button>
@@ -227,7 +227,7 @@ const ManageListings: React.FC = () => {
                         {(activeTab === 'approved' || activeTab === 'rejected') && (
                           <button 
                             onClick={() => handleEditCar(car)}
-                            className="text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors"
+                            className="text-[9px] md:text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors"
                           >
                             Edit
                           </button>
@@ -236,7 +236,7 @@ const ManageListings: React.FC = () => {
                         {activeTab === 'rejected' && (
                            <button 
                             onClick={() => handleApprove(car)}
-                            className="text-[10px] uppercase font-bold text-zinc-400 hover:text-white transition-colors"
+                            className="text-[9px] md:text-[10px] uppercase font-bold text-zinc-400 hover:text-white transition-colors whitespace-nowrap"
                           >
                             Re-Approve
                           </button>

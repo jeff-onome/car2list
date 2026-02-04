@@ -20,18 +20,27 @@ const AIChatAssistant: React.FC = () => {
   }, [messages, isTyping]);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isTyping) return;
 
     const userMsg = input;
     setMessages(prev => [...prev, { role: 'user', text: userMsg }]);
     setInput('');
     setIsTyping(true);
 
-    const inventorySummary = cars.map(c => `${c.make} ${c.model} (${c.year}) for $${c.price}`).join(', ');
-    const aiResponse = await aiService.getCarAdvice(userMsg, inventorySummary);
-
-    setMessages(prev => [...prev, { role: 'ai', text: aiResponse || 'I am sorry, I am currently unavailable.' }]);
-    setIsTyping(false);
+    try {
+      const inventorySummary = cars.length > 0 
+        ? cars.map(c => `${c.make} ${c.model} (${c.year}) for $${c.price}`).join(', ')
+        : "Currently updating our private collection...";
+        
+      const aiResponse = await aiService.getCarAdvice(userMsg, inventorySummary);
+      
+      setMessages(prev => [...prev, { role: 'ai', text: aiResponse || 'Our concierge service is currently undergoing maintenance.' }]);
+    } catch (error) {
+      console.error("Chat Error:", error);
+      setMessages(prev => [...prev, { role: 'ai', text: 'I encountered a technical synchronization error. Please try again in a moment.' }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   return (
@@ -65,7 +74,7 @@ const AIChatAssistant: React.FC = () => {
             {isTyping && (
               <div className="flex justify-start">
                 <div className="bg-zinc-800 text-zinc-500 p-3 rounded-2xl text-[10px] italic">
-                  Concierge is typing...
+                  Concierge is analyzing...
                 </div>
               </div>
             )}
@@ -77,9 +86,14 @@ const AIChatAssistant: React.FC = () => {
               onChange={e => setInput(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleSend()}
               placeholder="Ask anything..."
-              className="flex-grow bg-zinc-900 rounded-full px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/20"
+              className="flex-grow bg-zinc-900 rounded-full px-4 py-2 text-xs focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
+              disabled={isTyping}
             />
-            <button onClick={handleSend} className="bg-white text-black p-2 rounded-full hover:bg-zinc-200">
+            <button 
+              onClick={handleSend} 
+              disabled={isTyping}
+              className="bg-white text-black p-2 rounded-full hover:bg-zinc-200 disabled:opacity-50"
+            >
               <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
             </button>
           </div>

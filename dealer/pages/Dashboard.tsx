@@ -12,22 +12,22 @@ const DealerDashboard: React.FC = () => {
   const dealerCars = cars.filter(c => c.dealerId === user?.id);
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
-      <div className="max-w-7xl mx-auto space-y-12">
+    <div className="min-h-screen bg-black pt-24 pb-20 px-4 md:px-12">
+      <div className="max-w-7xl mx-auto space-y-8 md:space-y-12">
         
         {/* Verification Alert Banner */}
         {!user?.isVerified && (
-          <div className="glass bg-red-500/10 border border-red-500/20 rounded-[2rem] p-6 flex flex-col md:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4">
-            <div className="flex items-center gap-4">
+          <div className="glass bg-red-500/10 border border-red-500/20 rounded-2xl md:rounded-[2rem] p-4 md:p-6 flex flex-col lg:flex-row items-center justify-between gap-6 animate-in fade-in slide-in-from-top-4">
+            <div className="flex items-center gap-4 text-center lg:text-left flex-col lg:flex-row">
               <div className="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-red-500 shrink-0">
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" /></svg>
               </div>
               <div>
                 <h3 className="text-sm font-bold uppercase tracking-widest text-white">Status: Unverified Dealer</h3>
-                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Submissions are currently restricted to private draft mode. Admin verification required.</p>
+                <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Submissions restricted to private draft mode. Admin verification required.</p>
               </div>
             </div>
-            <Link to="/dealer/verify" className="bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl whitespace-nowrap">
+            <Link to="/dealer/verify" className="w-full lg:w-auto bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl text-center">
               Submit KYC Documents
             </Link>
           </div>
@@ -35,66 +35,66 @@ const DealerDashboard: React.FC = () => {
 
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
           <div>
-            <h1 className="text-4xl font-bold uppercase tracking-tighter">Dealer Hub</h1>
+            <h1 className="text-3xl md:text-4xl font-bold uppercase tracking-tighter">Dealer Hub</h1>
             <p className="text-zinc-500 mt-2 uppercase text-[10px] tracking-[0.2em] font-bold">Managing {user?.name} Portfolio</p>
           </div>
           <button 
             onClick={() => navigate('/dealer/add-car')}
-            className="bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl"
+            className="w-full md:w-auto bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl"
           >
             Enroll New Vehicle
           </button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-8">
           <StatCard label="Portfolio Valuation" value={`$${(dealerCars.reduce((acc, c) => acc + c.price, 0) / 1000000).toFixed(1)}M`} />
           <StatCard label="Active Listings" value={dealerCars.length.toString()} />
           <StatCard label="Review Queue" value={dealerCars.filter(c => c.status === 'pending').length.toString()} />
         </div>
 
-        <div className="glass rounded-3xl overflow-hidden border-white/5 shadow-2xl">
-          <div className="p-8 border-b border-white/5 bg-white/5 flex justify-between items-center">
+        <div className="glass rounded-2xl md:rounded-[3rem] overflow-hidden border-white/5 shadow-2xl">
+          <div className="p-6 md:p-8 border-b border-white/5 bg-white/5 flex flex-col md:flex-row justify-between items-center gap-4">
             <h3 className="font-bold uppercase tracking-widest text-[10px] text-zinc-500">Live Showroom Status</h3>
             <span className="text-[10px] text-zinc-600 uppercase tracking-widest font-mono">{dealerCars.length} Assets Registered</span>
           </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-left">
+          <div className="overflow-x-auto no-scrollbar">
+            <table className="w-full text-left min-w-[700px]">
               <thead>
                 <tr className="text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5 bg-black/20">
-                  <th className="px-8 py-5">Masterpiece</th>
-                  <th className="px-8 py-5 text-center">Status</th>
-                  <th className="px-8 py-5 text-center">Valuation</th>
-                  <th className="px-8 py-5 text-center">Category</th>
-                  <th className="px-8 py-5 text-right">Governance</th>
+                  <th className="px-6 md:px-8 py-5">Masterpiece</th>
+                  <th className="px-6 md:px-8 py-5 text-center">Status</th>
+                  <th className="px-6 md:px-8 py-5 text-center">Valuation</th>
+                  <th className="px-6 md:px-8 py-5 text-center">Category</th>
+                  <th className="px-6 md:px-8 py-5 text-right">Governance</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
                 {dealerCars.length > 0 ? (
                   dealerCars.map(car => (
                     <tr key={car.id} className="text-sm hover:bg-white/[0.02] transition-colors group">
-                      <td className="px-8 py-5">
+                      <td className="px-6 md:px-8 py-5">
                         <div className="flex items-center gap-4">
-                          <img src={car.images[0]} className="w-12 h-12 rounded-xl object-cover border border-white/10 shadow-lg" alt="" />
+                          <img src={car.images[0]} className="w-10 h-10 md:w-12 md:h-12 rounded-xl object-cover border border-white/10 shadow-lg" alt="" />
                           <div>
-                            <p className="font-bold text-white uppercase tracking-tight">{car.make} {car.model}</p>
+                            <p className="font-bold text-white uppercase tracking-tight text-xs md:text-sm">{car.make} {car.model}</p>
                             <p className="text-[9px] text-zinc-600 uppercase tracking-widest font-bold">{car.year} • {car.listingType}</p>
                           </div>
                         </div>
                       </td>
-                      <td className="px-8 py-5 text-center">
+                      <td className="px-6 md:px-8 py-5 text-center">
                         <span className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ${car.status === 'approved' ? 'bg-green-500/10 text-green-500 border-green-500/20' : car.status === 'pending' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' : 'bg-red-500/10 text-red-500 border-red-500/20'}`}>
                           {car.status || 'Active'}
                         </span>
                       </td>
-                      <td className="px-8 py-5 text-center">
+                      <td className="px-6 md:px-8 py-5 text-center">
                         <span className="font-mono font-bold text-white">${car.price.toLocaleString()}</span>
                       </td>
-                      <td className="px-8 py-5 text-center">
+                      <td className="px-6 md:px-8 py-5 text-center">
                         <span className="text-[10px] font-bold tracking-widest uppercase text-zinc-400">
                           {car.type}
                         </span>
                       </td>
-                      <td className="px-8 py-5 text-right">
+                      <td className="px-6 md:px-8 py-5 text-right">
                         <div className="flex gap-4 justify-end">
                           <button className="text-[10px] uppercase font-bold text-zinc-500 hover:text-white transition-colors underline decoration-white/0 hover:decoration-white/20">Edit</button>
                           <button className="text-[10px] uppercase font-bold text-red-500/40 hover:text-red-500 transition-colors">Archive</button>
@@ -121,9 +121,9 @@ const DealerDashboard: React.FC = () => {
 };
 
 const StatCard: React.FC<{ label: string; value: string }> = ({ label, value }) => (
-  <div className="glass p-8 rounded-[2.5rem] border border-white/5 shadow-xl">
+  <div className="glass p-6 md:p-8 rounded-2xl md:rounded-[2.5rem] border border-white/5 shadow-xl">
     <p className="text-[10px] uppercase tracking-[0.3em] text-zinc-500 mb-2 font-bold">{label}</p>
-    <p className="text-3xl font-bold tracking-tighter text-white">{value}</p>
+    <p className="text-2xl md:text-3xl font-bold tracking-tighter text-white">{value}</p>
   </div>
 );
 

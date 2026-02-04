@@ -50,7 +50,7 @@ const Inventory: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
+    <div className="min-h-screen bg-black pt-24 pb-20 px-4 md:px-12">
       <SEO 
         title="Luxury Car Inventory | Supercars & Exotic Fleet" 
         description={config.inventoryPage.description} 
@@ -58,29 +58,29 @@ const Inventory: React.FC = () => {
       />
       
       <div className="max-w-7xl mx-auto">
-        <header className="mb-12">
-          <h1 className="text-4xl font-bold mb-4 uppercase tracking-tighter">{config.inventoryPage.title}</h1>
-          <p className="text-zinc-500">{config.inventoryPage.description}</p>
+        <header className="mb-8 md:mb-12">
+          <h1 className="text-3xl md:text-5xl font-bold mb-4 uppercase tracking-tighter">{config.inventoryPage.title}</h1>
+          <p className="text-zinc-500 text-sm md:text-base leading-relaxed">{config.inventoryPage.description}</p>
         </header>
 
-        <section className="glass p-6 rounded-2xl mb-12 flex flex-col md:flex-row gap-6 items-center justify-between">
-          <div className="flex flex-wrap gap-4 w-full md:w-auto">
-            <div className="flex flex-col gap-2">
+        <section className="glass p-4 md:p-6 rounded-2xl md:rounded-[2.5rem] mb-8 md:mb-12 flex flex-col lg:flex-row gap-6 items-start lg:items-center justify-between">
+          <div className="flex flex-wrap gap-4 w-full lg:w-auto">
+            <div className="flex flex-col gap-2 flex-grow sm:flex-grow-0">
               <label htmlFor="service-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Service</label>
               <select 
                 id="service-filter"
-                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
+                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full"
                 value={filter.listingType}
                 onChange={e => setFilter({ ...filter, listingType: e.target.value })}
               >
                 {serviceOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
             </div>
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2 flex-grow sm:flex-grow-0">
               <label htmlFor="category-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Category</label>
               <select 
                 id="category-filter"
-                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
+                className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full"
                 value={filter.type}
                 onChange={e => setFilter({ ...filter, type: e.target.value })}
               >
@@ -89,11 +89,11 @@ const Inventory: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex flex-col gap-2 w-full md:w-auto">
+          <div className="flex flex-col gap-2 w-full lg:w-auto">
             <label htmlFor="sort-filter" className="text-[10px] uppercase tracking-widest text-zinc-500 ml-2">Sort By</label>
             <select 
               id="sort-filter"
-              className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
+              className="bg-zinc-900 border border-white/10 rounded-full px-4 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white w-full"
               value={filter.sort}
               onChange={e => setFilter({ ...filter, sort: e.target.value })}
             >
@@ -106,7 +106,7 @@ const Inventory: React.FC = () => {
 
         <section>
           {filteredCars.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 md:gap-8">
               {filteredCars.map(car => (
                 <CarCard key={car.id} car={car} />
               ))}

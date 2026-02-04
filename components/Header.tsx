@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -70,6 +71,7 @@ const Header: React.FC = () => {
   const formatTime = (isoString: string) => {
     try {
       const date = new Date(isoString);
+      if (isNaN(date.getTime())) return 'Archive';
       const now = new Date();
       const diffMs = now.getTime() - date.getTime();
       const diffMins = Math.floor(diffMs / 60000);
@@ -79,7 +81,7 @@ const Header: React.FC = () => {
       if (diffMins < 1440) return `${Math.floor(diffMins / 60)}h ago`;
       return date.toLocaleDateString();
     } catch (e) {
-      return isoString;
+      return 'Date Unknown';
     }
   };
 
