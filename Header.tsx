@@ -223,8 +223,14 @@ const Header: React.FC = () => {
           </div>
         ) : (
           <div className="hidden lg:block">
-            <Link to="/login" className="bg-white text-black text-[10px] px-6 py-2.5 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase tracking-widest">
-              Sign In
+            <Link 
+              to="/login" 
+              className="p-2.5 hover:bg-white/5 rounded-full transition-colors text-zinc-500 border border-white/10 flex items-center justify-center"
+              aria-label="Sign In"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
             </Link>
           </div>
         )}
@@ -255,7 +261,14 @@ const Header: React.FC = () => {
             </Link>
           ))}
           {!isAuthenticated && (
-            <Link to="/login" onClick={() => setIsMenuOpen(false)} className="bg-white text-black py-4 rounded-xl font-bold text-center uppercase tracking-widest text-xs flex items-center justify-center">
+            <Link 
+              to="/login" 
+              onClick={() => setIsMenuOpen(false)} 
+              className="bg-white/5 border border-white/10 text-white py-4 rounded-xl font-bold text-center uppercase tracking-widest text-xs flex items-center justify-center gap-3"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
               Sign In
             </Link>
           )}
