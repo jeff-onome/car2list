@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import Swal from 'https://esm.sh/sweetalert2@11';
@@ -28,7 +29,6 @@ const SiteCMS: React.FC = () => {
       setIsUploading(true);
       const url = await storageService.uploadImage(file);
       if (url) {
-        // Deep clone and set by path
         const newConfig = JSON.parse(JSON.stringify(localConfig));
         const keys = path.split('.');
         let current = newConfig;
@@ -69,6 +69,7 @@ const SiteCMS: React.FC = () => {
   const tabs = [
     'Global', 
     'Currencies', 
+    'Social Assets',
     'Custom Sections', 
     'Testimonials', 
     'Home Page', 
@@ -112,6 +113,35 @@ const SiteCMS: React.FC = () => {
               <CMSField label="Hero Title" value={localConfig.heroTitle} onChange={v => setLocalConfig({...localConfig, heroTitle: v})} />
               <CMSField label="Hero Subtitle" value={localConfig.heroSubtitle} onChange={v => setLocalConfig({...localConfig, heroSubtitle: v})} />
               <CMSField label="Featured Banner Text" value={localConfig.featuredBanner} onChange={v => setLocalConfig({...localConfig, featuredBanner: v})} />
+              <div className="pt-6 border-t border-white/5">
+                <CMSArea 
+                  label="Live Chat Integration Script" 
+                  value={localConfig.liveChatScript || ''} 
+                  onChange={v => setLocalConfig({...localConfig, liveChatScript: v})} 
+                  placeholder="Paste your raw integration code here (e.g. <script src='...' async></script>)"
+                />
+                <p className="mt-4 ml-4 text-[9px] uppercase tracking-widest text-zinc-600 italic">
+                  Note: Injected scripts will be active across all application portals. Ensure the code provided is valid HTML/JS.
+                </p>
+              </div>
+            </CMSSection>
+          )}
+
+          {activeTab === 'Social Assets' && (
+            <CMSSection title="Social Media Connectors">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  {Object.keys(localConfig.socialLinks).map(platform => (
+                    <CMSField 
+                      key={platform}
+                      label={`${platform.charAt(0).toUpperCase() + platform.slice(1)} URL`} 
+                      value={localConfig.socialLinks[platform]} 
+                      onChange={v => {
+                        const newLinks = { ...localConfig.socialLinks, [platform]: v };
+                        setLocalConfig({ ...localConfig, socialLinks: newLinks });
+                      }} 
+                    />
+                  ))}
+               </div>
             </CMSSection>
           )}
 
@@ -422,12 +452,13 @@ const CMSField = ({ label, value, onChange, type = "text" }: any) => (
   </div>
 );
 
-const CMSArea = ({ label, value, onChange }: any) => (
+const CMSArea = ({ label, value, onChange, placeholder }: any) => (
   <div className="space-y-2">
     <label className="text-[10px] uppercase tracking-widest text-zinc-500 ml-4 font-bold">{label}</label>
     <textarea 
       className="w-full bg-zinc-900 border border-white/5 rounded-[1.5rem] px-8 py-8 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white min-h-[150px] leading-relaxed transition-all hover:bg-zinc-800"
       value={value}
+      placeholder={placeholder}
       onChange={e => onChange(e.target.value)}
     />
   </div>

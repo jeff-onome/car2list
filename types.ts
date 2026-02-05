@@ -10,8 +10,8 @@ export interface User {
   isVerified: boolean;
   isSuspended?: boolean;
   joinedAt: string;
-  password?: string; // Stored for the sake of this mock implementation
-  // Added optional fields for identity verification status and documents
+  password?: string;
+  favorites?: string[];
   kycStatus?: 'pending' | 'approved' | 'rejected';
   kycDocuments?: {
     front: string;
@@ -26,7 +26,7 @@ export interface Car {
   make: string;
   model: string;
   year: number;
-  price: number; // Base price in USD
+  price: number;
   type: 'Luxury' | 'Sports' | 'SUV' | 'Classic';
   transmission: 'Automatic' | 'Manual';
   fuel: 'Petrol' | 'Electric' | 'Hybrid';
@@ -39,27 +39,53 @@ export interface Car {
   isFeatured: boolean;
   dealerId: string;
   dealerName?: string;
-  categories: string[]; // Changed from listingType to categories array
+  categories: string[];
   createdAt?: string;
   status: 'pending' | 'approved' | 'rejected' | 'archived';
   archivedBy?: 'ADMIN' | 'DEALER';
   moderationReason?: string;
 }
 
-export interface CurrencyConfig {
-  code: string;
-  symbol: string;
-  rate: number; // vs USD
+export interface Rental {
+  id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  carId: string;
+  carName: string;
+  dealerId: string;
+  dealerName: string;
+  startDate: string;
+  duration: number;
+  location: string;
+  totalPrice: number;
+  status: 'Pending' | 'Accepted' | 'Cancelled' | 'Completed';
+  createdAt: string;
+  securityOption: string;
 }
 
-export interface DealOfTheWeek {
-  isActive: boolean;
-  make: string;
-  model: string;
-  description: string;
-  price: number;
-  image: string;
-  endTime: string; // ISO string
+export interface Payment {
+  id: string;
+  userId: string;
+  userName: string;
+  amount: number;
+  method: 'Bank Transfer' | 'Crypto' | 'Card';
+  status: 'Pending' | 'Verified' | 'Rejected';
+  referenceId: string; // TX Hash or Receipt Number
+  createdAt: string;
+  itemType: 'Purchase' | 'Rental';
+  itemId: string; // CarId or RentalId
+  itemDescription: string;
+}
+
+export interface PlatformFinancials {
+  bankName: string;
+  accountName: string;
+  accountNumber: string;
+  swiftCode: string;
+  btcWallet: string;
+  ethWallet: string;
+  usdtWallet: string;
 }
 
 export interface Testimonial {
@@ -79,6 +105,12 @@ export interface CustomSection {
   layout: 'left' | 'right';
 }
 
+export interface CurrencyConfig {
+  code: string;
+  symbol: string;
+  rate: number;
+}
+
 export interface SiteConfig {
   siteName: string;
   heroTitle: string;
@@ -87,49 +119,18 @@ export interface SiteConfig {
   featuredBanner: string;
   activeCurrency: string;
   currencies: Record<string, CurrencyConfig>;
-  dealOfTheWeek: DealOfTheWeek;
+  dealOfTheWeek: any;
   testimonials: Testimonial[];
-  customSections: {
-    section1: CustomSection;
-    section2: CustomSection;
-    section3: CustomSection;
-  };
-  inventoryPage: {
-    title: string;
-    description: string;
-  };
-  homePage: {
-    heritageTitle: string;
-    heritageText: string;
-    servicesTitle: string;
-    services: { title: string; desc: string }[];
-  };
-  aboutPage: {
-    heroText: string;
-    missionTitle: string;
-    missionText: string;
-    valuesTitle: string;
-    valuesText: string;
-    imageUrl: string;
-  };
-  faqPage: { q: string; a: string }[];
-  contactPage: {
-    address: string;
-    email: string;
-    phone: string;
-    description: string;
-  };
-  financingPage: {
-    heroText: string;
-    cards: { title: string; desc: string }[];
-  };
+  socialLinks: Record<string, string>;
+  customSections: Record<string, CustomSection>;
+  financials: PlatformFinancials;
+  liveChatScript: string; // Dynamic integration field
+  inventoryPage: any;
+  homePage: any;
+  aboutPage: any;
+  faqPage: any[];
+  contactPage: any;
+  financingPage: any;
   privacyPolicy: string;
   termsOfService: string;
-}
-
-export interface AuthContextType {
-  user: User | null;
-  login: (role: UserRole, userData: User) => void;
-  logout: () => void;
-  isAuthenticated: boolean;
 }

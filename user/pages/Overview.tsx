@@ -29,9 +29,10 @@ const Overview: React.FC = () => {
     }
   }, [user]);
 
-  const boughtCount = purchases.filter(p => p.listingType !== 'Rent').length;
-  const rentedCount = purchases.filter(p => p.listingType === 'Rent').length;
-  const totalSpend = purchases.reduce((acc, p) => acc + (p.price || 0), 0);
+  // Fixed: Metrics now use itemType and amount from the Payment interface
+  const boughtCount = purchases.filter(p => p.itemType === 'Purchase').length;
+  const rentedCount = purchases.filter(p => p.itemType === 'Rental').length;
+  const totalSpend = purchases.reduce((acc, p) => acc + (p.amount || 0), 0);
 
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-4 md:px-12">
@@ -107,26 +108,35 @@ const Overview: React.FC = () => {
                <Link to="/user/purchases" className="text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">View All history</Link>
             </div>
             <div className="space-y-4">
-               {[...purchases, ...bookings].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).slice(0, 5).map((item, idx) => (
+               {/* Fixed: Unified pulse sorting by createdAt (Payment) or date (Booking) */}
+               {[...purchases, ...bookings].sort((a,b) => {
+                 const dateA = new Date(a.createdAt || a.date).getTime();
+                 const dateB = new Date(b.createdAt || b.date).getTime();
+                 return dateB - dateA;
+               }).slice(0, 5).map((item, idx) => (
                  <div key={idx} className="glass p-5 md:p-6 rounded-2xl md:rounded-[2rem] border-white/5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/5 transition-all gap-4 group">
                     <div className="flex items-center gap-4">
                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-500 shrink-0 group-hover:text-white transition-colors">
-                          {item.price ? (
+                          {/* Fixed: Use amount property to identify a payment */}
+                          {item.amount ? (
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           ) : (
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           )}
                        </div>
                        <div className="overflow-hidden">
-                          <p className="text-sm font-bold uppercase tracking-tight truncate">{item.car || item.model}</p>
+                          {/* Fixed: Display itemDescription for payments or car for bookings */}
+                          <p className="text-sm font-bold uppercase tracking-tight truncate">{item.itemDescription || item.car}</p>
                           <div className="flex items-center gap-2 mt-0.5">
-                             <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{item.price ? 'Purchase' : 'Test Drive'}</p>
+                             <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{item.amount ? 'Payment' : 'Test Drive'}</p>
                              <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                             <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter sm:hidden">{new Date(item.date).toLocaleDateString()}</p>
+                             {/* Fixed: Handle both createdAt and date properties for the timestamp */}
+                             <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter sm:hidden">{new Date(item.createdAt || item.date).toLocaleDateString()}</p>
                           </div>
                        </div>
                     </div>
-                    <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter text-right hidden sm:block">{new Date(item.date).toLocaleDateString()}</p>
+                    {/* Fixed: Handle date display for desktop view */}
+                    <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter text-right hidden sm:block">{new Date(item.createdAt || item.date).toLocaleDateString()}</p>
                  </div>
                ))}
                {purchases.length === 0 && bookings.length === 0 && !loading && (

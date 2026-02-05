@@ -22,10 +22,9 @@ const Footer: React.FC = () => {
             The world's premier destination for luxury automotive enthusiasts. Experience excellence in every mile.
           </p>
           <div className="flex justify-center md:justify-start space-x-4">
-            <SocialIcon platform="facebook" href="https://facebook.com" />
-            <SocialIcon platform="twitter" href="https://twitter.com" />
-            <SocialIcon platform="instagram" href="https://instagram.com" />
-            <SocialIcon platform="whatsapp" href="https://whatsapp.com" />
+             {Object.entries(config.socialLinks).map(([platform, url]) => url && (
+               <SocialIcon key={platform} platform={platform as any} href={url} />
+             ))}
           </div>
         </div>
 
@@ -65,7 +64,7 @@ const Footer: React.FC = () => {
 };
 
 interface SocialIconProps {
-  platform: 'facebook' | 'twitter' | 'instagram' | 'whatsapp';
+  platform: 'facebook' | 'twitter' | 'instagram' | 'whatsapp' | 'linkedin';
   href: string;
 }
 
@@ -86,6 +85,8 @@ const SocialIcon: React.FC<SocialIconProps> = ({ platform, href }) => {
         );
       case 'whatsapp':
         return <path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" />;
+      case 'linkedin':
+         return <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z M2 9h4v12H2z M4 2a2 2 0 1 1-2 2 2 2 0 0 1 2-2z" />;
       default:
         return null;
     }

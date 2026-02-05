@@ -37,14 +37,17 @@ const Purchases: React.FC = () => {
                       <svg className="w-8 h-8 text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                     </div>
                     <div>
-                      <h3 className="text-xl font-bold uppercase tracking-tight">{p.model}</h3>
-                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Ref: {p.id} • {new Date(p.date).toLocaleDateString()}</p>
+                      {/* Fixed: Used itemDescription from Payment interface instead of model */}
+                      <h3 className="text-xl font-bold uppercase tracking-tight">{p.itemDescription}</h3>
+                      {/* Fixed: Used createdAt from Payment interface instead of date */}
+                      <p className="text-[10px] text-zinc-500 uppercase tracking-widest mt-1">Ref: {p.id} • {new Date(p.createdAt).toLocaleDateString()}</p>
                     </div>
                   </div>
                   <div className="flex items-center gap-12">
                     <div className="text-right">
                       <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold">Valuation</p>
-                      <p className="text-xl font-bold text-white">{formatPrice(p.price || 0)}</p>
+                      {/* Fixed: Used amount from Payment interface instead of price */}
+                      <p className="text-xl font-bold text-white">{formatPrice(p.amount || 0)}</p>
                     </div>
                     <button className="bg-white/5 border border-white/10 px-8 py-3 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/10 transition-all text-white">
                       View Certificate

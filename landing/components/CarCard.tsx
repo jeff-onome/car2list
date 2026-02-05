@@ -3,6 +3,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Car } from '../../types';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import { useCars } from '../../context/CarContext';
 
 interface CarCardProps {
   car: Car;
@@ -10,6 +11,8 @@ interface CarCardProps {
 
 const CarCard: React.FC<CarCardProps> = ({ car }) => {
   const { formatPrice } = useSiteConfig();
+  const { favorites, toggleFavorite } = useCars();
+  const isFav = favorites.includes(car.id);
 
   const getCategoryColor = (cat: string) => {
     switch (cat) {
@@ -24,8 +27,14 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
 
   const cats = car.categories || [];
 
+  const handleLike = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleFavorite(car.id);
+  };
+
   return (
-    <Link to={`/car/${car.id}`} className="group block glass rounded-2xl overflow-hidden hover:border-white/30 transition-all duration-500">
+    <Link to={`/car/${car.id}`} className="group block glass rounded-2xl overflow-hidden hover:border-white/30 transition-all duration-500 relative">
       <div className="relative aspect-[16/10] overflow-hidden">
         <img 
           src={car.images[0]} 
@@ -35,6 +44,14 @@ const CarCard: React.FC<CarCardProps> = ({ car }) => {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-60" />
         
+        {/* Like Button Overlay */}
+        <button 
+          onClick={handleLike}
+          className={`absolute top-4 left-4 p-2.5 rounded-full backdrop-blur-xl border transition-all z-20 ${isFav ? 'bg-white text-black border-white' : 'bg-black/20 text-white border-white/10 hover:bg-black/40'}`}
+        >
+          <svg className="w-4 h-4" fill={isFav ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+        </button>
+
         <div className="absolute top-4 right-4 flex flex-col items-end gap-2">
            {cats.map(cat => (
              <span key={cat} className={`backdrop-blur-md px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ${getCategoryColor(cat)} shadow-lg`}>

@@ -1,7 +1,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, get, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { Car, SiteConfig, User } from "../types";
+import { Car, SiteConfig, User, Rental, Payment } from "../types";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7Q4VwibeVMWwKH9mJw6YZqfRc8RfaZLU",
@@ -18,202 +18,146 @@ const app = initializeApp(firebaseConfig);
 const db = getDatabase(app);
 
 export const dbService = {
-  // --- Cars Operations ---
-  async getCars(): Promise<Car[]> {
-    const snapshot = await get(ref(db, 'cars'));
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      return Object.keys(data).map(key => ({ ...data[key], id: key }));
-    }
-    return [];
-  },
-
+  // --- Cars ---
   subscribeToCars(callback: (cars: Car[]) => void) {
-    const carsRef = ref(db, 'cars');
-    return onValue(carsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const carList = Object.keys(data).map(key => ({ ...data[key], id: key }));
-        callback(carList);
-      } else {
-        callback([]);
-      }
+    return onValue(ref(db, 'cars'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        callback(Object.keys(data).map(k => ({ ...data[k], id: k })));
+      } else callback([]);
     });
   },
-
-  async addCar(car: Omit<Car, 'id'>) {
-    const carsRef = ref(db, 'cars');
-    const newCarRef = push(carsRef);
-    await set(newCarRef, { ...car, createdAt: new Date().toISOString() });
-    return newCarRef.key;
-  },
-
   async updateCar(carId: string, updates: Partial<Car>) {
     await update(ref(db, `cars/${carId}`), updates);
   },
-
+  async addCar(car: Omit<Car, 'id'>) {
+    const newRef = push(ref(db, 'cars'));
+    await set(newRef, { ...car, createdAt: new Date().toISOString() });
+    return newRef.key;
+  },
   async deleteCar(carId: string) {
     await remove(ref(db, `cars/${carId}`));
   },
 
-  // --- Site Config Operations ---
-  async getSiteConfig(): Promise<SiteConfig | null> {
-    const snapshot = await get(ref(db, 'config'));
-    return snapshot.exists() ? snapshot.val() : null;
-  },
-
-  subscribeToConfig(callback: (config: SiteConfig) => void) {
-    const configRef = ref(db, 'config');
-    return onValue(configRef, (snapshot) => {
-      if (snapshot.exists()) {
-        callback(snapshot.val());
-      }
-    });
-  },
-
-  async updateSiteConfig(config: Partial<SiteConfig>) {
-    await update(ref(db, 'config'), config);
-  },
-
-  // --- User Operations ---
-  async saveUser(userId: string, user: User) {
-    await set(ref(db, `users/${userId}`), user);
-  },
-
-  async updateUser(userId: string, updates: Partial<User>) {
-    await update(ref(db, `users/${userId}`), updates);
-  },
-
+  // --- Users ---
   async getUsers(): Promise<User[]> {
-    const snapshot = await get(ref(db, 'users'));
-    if (snapshot.exists()) {
-      const data = snapshot.val();
-      return Object.keys(data).map(key => ({ ...data[key], id: key }));
-    }
-    return [];
+    const snap = await get(ref(db, 'users'));
+    return snap.exists() ? Object.keys(snap.val()).map(k => ({ ...snap.val()[k], id: k })) : [];
   },
-
   subscribeToUsers(callback: (users: User[]) => void) {
-    const usersRef = ref(db, 'users');
-    return onValue(usersRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const userList = Object.keys(data).map(key => ({ ...data[key], id: key }));
-        callback(userList);
-      } else {
-        callback([]);
-      }
+    return onValue(ref(db, 'users'), (snap) => {
+      if (snap.exists()) callback(Object.keys(snap.val()).map(k => ({ ...snap.val()[k], id: k })));
+      else callback([]);
     });
   },
+  async saveUser(uid: string, user: User) { await set(ref(db, `users/${uid}`), user); },
+  async updateUser(uid: string, updates: Partial<User>) { await update(ref(db, `users/${uid}`), updates); },
 
-  // --- Purchases ---
-  subscribeToPurchases(userId: string, callback: (purchases: any[]) => void) {
-    const purchaseRef = ref(db, `purchases/${userId}`);
-    return onValue(purchaseRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        callback(Object.keys(data).map(key => ({ ...data[key], id: key })));
-      } else {
-        callback([]);
-      }
+  // --- Configuration ---
+  subscribeToConfig(callback: (config: SiteConfig) => void) {
+    return onValue(ref(db, 'config'), (snap) => snap.exists() && callback(snap.val()));
+  },
+  async updateSiteConfig(config: Partial<SiteConfig>) { await update(ref(db, 'config'), config); },
+
+  // --- Rentals (Refactored) ---
+  async createRental(rental: Omit<Rental, 'id' | 'createdAt' | 'status'>) {
+    const newRef = push(ref(db, 'rentals'));
+    const data = { ...rental, id: newRef.key, status: 'Pending', createdAt: new Date().toISOString() };
+    await set(newRef, data);
+    return newRef.key;
+  },
+  subscribeToAllRentals(callback: (rentals: Rental[]) => void) {
+    return onValue(ref(db, 'rentals'), (snap) => {
+      if (snap.exists()) callback(Object.values(snap.val()) as Rental[]);
+      else callback([]);
     });
   },
-
-  // --- REFACTORED GLOBAL BOOKINGS ---
-  
-  async createBooking(booking: any) {
-    const bookingsRef = ref(db, 'bookings/all');
-    const newBookingRef = push(bookingsRef);
-    const bookingData = {
-      ...booking,
-      id: newBookingRef.key,
-      createdAt: new Date().toISOString(),
-      status: 'Confirmed'
-    };
-    await set(newBookingRef, bookingData);
-    return newBookingRef.key;
-  },
-
-  subscribeToBookings(userId: string, callback: (bookings: any[]) => void) {
-    const bookingsRef = ref(db, 'bookings/all');
-    return onValue(bookingsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const all = Object.keys(data).map(key => ({ ...data[key], id: key }));
-        // Filter for specific user
-        callback(all.filter(b => b.userId === userId).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      } else {
-        callback([]);
-      }
+  subscribeToUserRentals(uid: string, callback: (rentals: Rental[]) => void) {
+    return onValue(ref(db, 'rentals'), (snap) => {
+      if (snap.exists()) {
+        const all = Object.values(snap.val()) as Rental[];
+        callback(all.filter(r => r.userId === uid).sort((a,b) => b.createdAt.localeCompare(a.createdAt)));
+      } else callback([]);
     });
   },
-
-  subscribeToDealerBookings(dealerId: string, callback: (bookings: any[]) => void) {
-    const bookingsRef = ref(db, 'bookings/all');
-    return onValue(bookingsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const all = Object.keys(data).map(key => ({ ...data[key], id: key }));
-        // Filter for specific dealer's cars
-        callback(all.filter(b => b.dealerId === dealerId).sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      } else {
-        callback([]);
-      }
+  subscribeToDealerRentals(did: string, callback: (rentals: Rental[]) => void) {
+    return onValue(ref(db, 'rentals'), (snap) => {
+      if (snap.exists()) {
+        const all = Object.values(snap.val()) as Rental[];
+        callback(all.filter(r => r.dealerId === did).sort((a,b) => b.createdAt.localeCompare(a.createdAt)));
+      } else callback([]);
     });
   },
-
-  subscribeToAllBookings(callback: (bookings: any[]) => void) {
-    const bookingsRef = ref(db, 'bookings/all');
-    return onValue(bookingsRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const all = Object.keys(data).map(key => ({ ...data[key], id: key }));
-        callback(all.sort((a,b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
-      } else {
-        callback([]);
-      }
-    });
+  async updateRentalStatus(rid: string, status: Rental['status']) {
+    await update(ref(db, `rentals/${rid}`), { status });
   },
 
-  // --- Real-time Notifications ---
-  subscribeToNotifications(userId: string, callback: (notifications: any[]) => void) {
-    const notifyRef = ref(db, `notifications/${userId}`);
-    return onValue(notifyRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        const sorted = Object.keys(data)
-          .map(key => ({ ...data[key], id: key }))
-          .sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-        callback(sorted);
-      } else {
-        callback([]);
-      }
+  // --- Payments ---
+  async submitPayment(payment: Omit<Payment, 'id' | 'createdAt' | 'status'>) {
+    const newRef = push(ref(db, 'payments'));
+    const data = { ...payment, id: newRef.key, status: 'Pending', createdAt: new Date().toISOString() };
+    await set(newRef, data);
+    return newRef.key;
+  },
+  subscribeToAllPayments(callback: (payments: Payment[]) => void) {
+    return onValue(ref(db, 'payments'), (snap) => {
+      if (snap.exists()) callback(Object.values(snap.val()) as Payment[]);
+      else callback([]);
     });
   },
-
-  async createNotification(userId: string, notification: { title: string; message: string; type: 'info' | 'success' | 'warning' }) {
-    const notifyRef = ref(db, `notifications/${userId}`);
-    const newNotifyRef = push(notifyRef);
-    await set(newNotifyRef, {
-      ...notification,
-      read: false,
-      time: new Date().toISOString()
+  // Fixed: Added subscribeToPurchases to handle user payment history synchronization
+  subscribeToPurchases(uid: string, callback: (payments: Payment[]) => void) {
+    return onValue(ref(db, 'payments'), (snap) => {
+      if (snap.exists()) {
+        const all = Object.values(snap.val()) as Payment[];
+        callback(all.filter(p => p.userId === uid).sort((a,b) => b.createdAt.localeCompare(a.createdAt)));
+      } else callback([]);
     });
   },
+  async updatePaymentStatus(pid: string, status: Payment['status']) {
+    await update(ref(db, `payments/${pid}`), { status });
+  },
 
-  // Helper to notify all users with ADMIN role
-  async notifyAllAdmins(notification: { title: string; message: string; type: 'info' | 'success' | 'warning' }) {
+  // --- Notifications ---
+  subscribeToNotifications(uid: string, callback: (notifs: any[]) => void) {
+    return onValue(ref(db, `notifications/${uid}`), (snap) => {
+      if (snap.exists()) callback(Object.keys(snap.val()).map(k => ({ ...snap.val()[k], id: k })).reverse());
+      else callback([]);
+    });
+  },
+  async createNotification(uid: string, n: { title: string; message: string; type: 'info' | 'success' | 'warning' }) {
+    await push(ref(db, `notifications/${uid}`), { ...n, read: false, time: new Date().toISOString() });
+  },
+  async notifyAllAdmins(n: any) {
     const users = await this.getUsers();
     const admins = users.filter(u => u.role === 'ADMIN');
-    const promises = admins.map(admin => this.createNotification(admin.id, notification));
-    await Promise.all(promises);
+    for (const a of admins) await this.createNotification(a.id, n);
   },
+  async markNotificationRead(uid: string, nid: string) { await update(ref(db, `notifications/${uid}/${nid}`), { read: true }); },
+  async clearUserNotifications(uid: string) { await remove(ref(db, `notifications/${uid}`)); },
 
-  async markNotificationRead(userId: string, notificationId: string) {
-    await update(ref(db, `notifications/${userId}/${notificationId}`), { read: true });
+  // Legacy Bookings (for Test Drives only now)
+  async createBooking(booking: any) {
+    const newRef = push(ref(db, 'bookings/all'));
+    await set(newRef, { ...booking, id: newRef.key, createdAt: new Date().toISOString(), status: 'Confirmed' });
+    return newRef.key;
   },
-
-  async clearUserNotifications(userId: string) {
-    await remove(ref(db, `notifications/${userId}`));
+  subscribeToBookings(uid: string, callback: (b: any[]) => void) {
+    return onValue(ref(db, 'bookings/all'), (snap) => {
+      if (snap.exists()) callback(Object.values(snap.val()).filter((b:any) => b.userId === uid));
+      else callback([]);
+    });
+  },
+  subscribeToDealerBookings(did: string, callback: (b: any[]) => void) {
+    return onValue(ref(db, 'bookings/all'), (snap) => {
+      if (snap.exists()) callback(Object.values(snap.val()).filter((b:any) => b.dealerId === did));
+      else callback([]);
+    });
+  },
+  subscribeToAllBookings(callback: (b: any[]) => void) {
+    return onValue(ref(db, 'bookings/all'), (snap) => {
+      if (snap.exists()) callback(Object.values(snap.val()));
+      else callback([]);
+    });
   }
 };

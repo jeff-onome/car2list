@@ -30,6 +30,7 @@ import Compare from './user/pages/Compare';
 import Verification from './user/pages/Verification';
 import TestDrives from './user/pages/TestDrives';
 import Purchases from './user/pages/Purchases';
+import RentalHistory from './user/pages/RentalHistory';
 
 // Dealer Portal
 import DealerDashboard from './dealer/pages/Dashboard';
@@ -44,6 +45,8 @@ import AdminManageListings from './superadmin/pages/ManageListings';
 import SiteCMS from './superadmin/pages/SiteCMS';
 import DealOfTheWeekAdmin from './superadmin/pages/DealOfTheWeek';
 import KYCReview from './superadmin/pages/KYCReview';
+import RentalManagement from './superadmin/pages/RentalManagement';
+import PaymentManagement from './superadmin/pages/PaymentManagement';
 
 // Common
 import Security from './common/pages/Security';
@@ -66,7 +69,6 @@ const App: React.FC = () => {
                 <Header />
                 <main className="flex-grow">
                   <Routes>
-                    {/* Public Landing Routes */}
                     <Route path="/" element={<Home />} />
                     <Route path="/inventory" element={<Inventory />} />
                     <Route path="/car/:id" element={<CarDetail />} />
@@ -81,7 +83,6 @@ const App: React.FC = () => {
                     <Route path="/register" element={<Register />} />
                     <Route path="/register-success" element={<RegistrationSuccess />} />
                     
-                    {/* User Portal Routes */}
                     <Route path="/user/*" element={
                       <PortalLayout>
                         <Routes>
@@ -93,12 +94,12 @@ const App: React.FC = () => {
                           <Route path="verify" element={<Verification />} />
                           <Route path="test-drives" element={<TestDrives />} />
                           <Route path="purchases" element={<Purchases />} />
+                          <Route path="rentals" element={<RentalHistory />} />
                           <Route path="*" element={<Navigate to="overview" replace />} />
                         </Routes>
                       </PortalLayout>
                     } />
 
-                    {/* Dealer Portal Routes */}
                     <Route path="/dealer/*" element={
                       <PortalLayout>
                         <Routes>
@@ -112,7 +113,6 @@ const App: React.FC = () => {
                       </PortalLayout>
                     } />
 
-                    {/* Admin Portal Routes */}
                     <Route path="/admin/*" element={
                       <PortalLayout>
                         <Routes>
@@ -124,6 +124,8 @@ const App: React.FC = () => {
                           <Route path="listings" element={<AdminManageListings />} />
                           <Route path="deal" element={<DealOfTheWeekAdmin />} />
                           <Route path="cms" element={<SiteCMS />} />
+                          <Route path="rentals" element={<RentalManagement />} />
+                          <Route path="payments" element={<PaymentManagement />} />
                           <Route path="*" element={<Navigate to="dashboard" replace />} />
                         </Routes>
                       </PortalLayout>
