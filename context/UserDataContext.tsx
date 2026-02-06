@@ -37,17 +37,27 @@ const UserDataContext = createContext<UserDataContextType | undefined>(undefined
 
 export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { user } = useAuth();
-  const [userData, setUserData] = useState<UserData>({
-    recentlyViewed: [],
-    preferences: {
-      darkMode: true,
-      currency: 'USD'
-    }
+  const [userData, setUserData] = useState<UserData>(() => {
+    const saved = localStorage.getItem('autosphere_preferences');
+    const preferences = saved ? JSON.parse(saved) : { darkMode: true, currency: 'USD' };
+    return {
+      recentlyViewed: [],
+      preferences
+    };
   });
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [isMobileSidebarOpen, setMobileSidebarOpen] = useState(false);
+
+  useEffect(() => {
+    // Synchronize initial class state
+    if (userData.preferences.darkMode) {
+      document.body.classList.add('dark');
+    } else {
+      document.body.classList.remove('dark');
+    }
+  }, []);
 
   useEffect(() => {
     if (user?.id) {
@@ -66,11 +76,23 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   const toggleDarkMode = () => {
-    setUserData(prev => ({
-      ...prev,
-      preferences: { ...prev.preferences, darkMode: !prev.preferences.darkMode }
-    }));
-    document.body.classList.toggle('dark');
+    setUserData(prev => {
+      const newDarkMode = !prev.preferences.darkMode;
+      const newPrefs = { ...prev.preferences, darkMode: newDarkMode };
+      
+      localStorage.setItem('autosphere_preferences', JSON.stringify(newPrefs));
+      
+      if (newDarkMode) {
+        document.body.classList.add('dark');
+      } else {
+        document.body.classList.remove('dark');
+      }
+      
+      return {
+        ...prev,
+        preferences: newPrefs
+      };
+    });
   };
 
   const markNotificationAsRead = async (id: string) => {
@@ -86,22 +108,20 @@ export const UserDataProvider: React.FC<{ children: React.ReactNode }> = ({ chil
   };
 
   return (
-    <div className={userData.preferences.darkMode ? 'dark' : ''}>
-      <UserDataContext.Provider value={{ 
-        userData, 
-        addRecentlyViewed, 
-        toggleDarkMode,
-        isSidebarCollapsed,
-        setSidebarCollapsed,
-        isMobileSidebarOpen,
-        setMobileSidebarOpen,
-        notifications,
-        markNotificationAsRead,
-        clearNotifications
-      }}>
-        {children}
-      </UserDataContext.Provider>
-    </div>
+    <UserDataContext.Provider value={{ 
+      userData, 
+      addRecentlyViewed, 
+      toggleDarkMode,
+      isSidebarCollapsed,
+      setSidebarCollapsed,
+      isMobileSidebarOpen,
+      setMobileSidebarOpen,
+      notifications,
+      markNotificationAsRead,
+      clearNotifications
+    }}>
+      {children}
+    </UserDataContext.Provider>
   );
 };
 

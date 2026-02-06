@@ -77,7 +77,7 @@ const Home: React.FC = () => {
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       })
-      .slice(0, 6);
+      .slice(0, 3); // Limited to top 3 arrivals as requested
   }, [cars]);
 
   const deal = config.dealOfTheWeek;
