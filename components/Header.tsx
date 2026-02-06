@@ -206,9 +206,56 @@ const Header: React.FC = () => {
             )}
           </div>
         ) : (
-          <Link to="/login" className="bg-white text-black text-[10px] px-6 py-2.5 rounded-full font-bold hover:bg-zinc-200 transition-all uppercase tracking-widest">Sign In</Link>
+          <Link 
+            to="/login" 
+            className="p-2.5 hover:bg-white/5 rounded-full transition-colors text-zinc-500 border border-white/10 flex items-center justify-center"
+            aria-label="Sign In"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+          </Link>
+        )}
+        
+        {!isPortal && (
+          <button className="lg:hidden p-2 text-zinc-400" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle Menu">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              {isMenuOpen ? (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+              ) : (
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 6h16M4 12h16M4 18h16" />
+              )}
+            </svg>
+          </button>
         )}
       </div>
+
+      {isMenuOpen && !isPortal && (
+        <div className="absolute top-16 left-0 right-0 bg-zinc-950 border-b border-white/10 flex flex-col p-8 space-y-6 lg:hidden animate-in slide-in-from-top-2 shadow-2xl">
+          {linksToDisplay.map(link => (
+            <Link 
+              key={link.path} 
+              to={link.path} 
+              onClick={() => setIsMenuOpen(false)} 
+              className={`text-sm font-bold uppercase tracking-widest transition-colors ${location.pathname === link.path ? 'text-white' : 'text-zinc-400 hover:text-white'}`}
+            >
+              {link.name}
+            </Link>
+          ))}
+          {!isAuthenticated && (
+            <Link 
+              to="/login" 
+              onClick={() => setIsMenuOpen(false)} 
+              className="bg-white/5 border border-white/10 text-white py-4 rounded-xl font-bold text-center uppercase tracking-widest text-xs flex items-center justify-center gap-3"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+              Sign In
+            </Link>
+          )}
+        </div>
+      )}
     </header>
   );
 };
