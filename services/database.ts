@@ -1,4 +1,3 @@
-
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, get, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
 import { Car, SiteConfig, User, Rental, Payment } from "../types";
@@ -59,16 +58,16 @@ export const dbService = {
   },
   async updateSiteConfig(config: Partial<SiteConfig>) { await update(ref(db, 'config'), config); },
 
-  // --- Rentals (Refactored) ---
+  // --- Rentals ---
   async createRental(rental: Omit<Rental, 'id' | 'createdAt' | 'status'>) {
     const newRef = push(ref(db, 'rentals'));
-    const data = { ...rental, id: newRef.key, status: 'Pending', createdAt: new Date().toISOString() };
+    const data = { ...rental, id: newRef.key, status: 'Pending', createdAt: new Date().toISOString(), hideFromDealer: false };
     await set(newRef, data);
     return newRef.key;
   },
-  subscribeToAllRentals(callback: (rentals: Rental[]) => void) {
+  subscribeToAllRentals(callback: (rentals: (Rental & { hideFromDealer?: boolean })[]) => void) {
     return onValue(ref(db, 'rentals'), (snap) => {
-      if (snap.exists()) callback(Object.values(snap.val()) as Rental[]);
+      if (snap.exists()) callback(Object.values(snap.val()) as any);
       else callback([]);
     });
   },
@@ -83,13 +82,17 @@ export const dbService = {
   subscribeToDealerRentals(did: string, callback: (rentals: Rental[]) => void) {
     return onValue(ref(db, 'rentals'), (snap) => {
       if (snap.exists()) {
-        const all = Object.values(snap.val()) as Rental[];
-        callback(all.filter(r => r.dealerId === did).sort((a,b) => b.createdAt.localeCompare(a.createdAt)));
+        const all = Object.values(snap.val()) as any[];
+        // Isolation: Filter by dealerId and hideFromDealer flag
+        callback(all.filter(r => r.dealerId === did && !r.hideFromDealer).sort((a,b) => b.createdAt.localeCompare(a.createdAt)));
       } else callback([]);
     });
   },
   async updateRentalStatus(rid: string, status: Rental['status']) {
     await update(ref(db, `rentals/${rid}`), { status });
+  },
+  async updateRentalVisibility(rid: string, hide: boolean) {
+    await update(ref(db, `rentals/${rid}`), { hideFromDealer: hide });
   },
 
   // --- Payments ---
@@ -105,7 +108,6 @@ export const dbService = {
       else callback([]);
     });
   },
-  // Fixed: Added subscribeToPurchases to handle user payment history synchronization
   subscribeToPurchases(uid: string, callback: (payments: Payment[]) => void) {
     return onValue(ref(db, 'payments'), (snap) => {
       if (snap.exists()) {
@@ -133,13 +135,23 @@ export const dbService = {
     const admins = users.filter(u => u.role === 'ADMIN');
     for (const a of admins) await this.createNotification(a.id, n);
   },
+  async sendBroadcastNotification(target: 'ALL' | 'DEALER', n: { title: string; message: string; type: 'info' | 'success' | 'warning' }) {
+    const users = await this.getUsers();
+    const recipients = target === 'ALL' 
+      ? users 
+      : users.filter(u => u.role === 'DEALER');
+    
+    for (const u of recipients) {
+      await this.createNotification(u.id, n);
+    }
+  },
   async markNotificationRead(uid: string, nid: string) { await update(ref(db, `notifications/${uid}/${nid}`), { read: true }); },
   async clearUserNotifications(uid: string) { await remove(ref(db, `notifications/${uid}`)); },
 
-  // Legacy Bookings (for Test Drives only now)
+  // --- Bookings (Test Drives) ---
   async createBooking(booking: any) {
     const newRef = push(ref(db, 'bookings/all'));
-    await set(newRef, { ...booking, id: newRef.key, createdAt: new Date().toISOString(), status: 'Confirmed' });
+    await set(newRef, { ...booking, id: newRef.key, createdAt: new Date().toISOString(), status: 'Confirmed', hideFromDealer: false });
     return newRef.key;
   },
   subscribeToBookings(uid: string, callback: (b: any[]) => void) {
@@ -150,8 +162,11 @@ export const dbService = {
   },
   subscribeToDealerBookings(did: string, callback: (b: any[]) => void) {
     return onValue(ref(db, 'bookings/all'), (snap) => {
-      if (snap.exists()) callback(Object.values(snap.val()).filter((b:any) => b.dealerId === did));
-      else callback([]);
+      if (snap.exists()) {
+        const all = Object.values(snap.val()) as any[];
+        // Isolation: Filter by dealerId and hideFromDealer flag
+        callback(all.filter((b:any) => b.dealerId === did && !b.hideFromDealer));
+      } else callback([]);
     });
   },
   subscribeToAllBookings(callback: (b: any[]) => void) {
@@ -159,5 +174,8 @@ export const dbService = {
       if (snap.exists()) callback(Object.values(snap.val()));
       else callback([]);
     });
+  },
+  async updateBookingVisibility(bid: string, hide: boolean) {
+    await update(ref(db, `bookings/all/${bid}`), { hideFromDealer: hide });
   }
 };

@@ -31,6 +31,7 @@ import Verification from './user/pages/Verification';
 import TestDrives from './user/pages/TestDrives';
 import Purchases from './user/pages/Purchases';
 import RentalHistory from './user/pages/RentalHistory';
+import UserMessages from './user/pages/Messages';
 
 // Dealer Portal
 import DealerDashboard from './dealer/pages/Dashboard';
@@ -46,6 +47,7 @@ import SiteCMS from './superadmin/pages/SiteCMS';
 import DealOfTheWeekAdmin from './superadmin/pages/DealOfTheWeek';
 import KYCReview from './superadmin/pages/KYCReview';
 import RentalManagement from './superadmin/pages/RentalManagement';
+import RentalDetail from './superadmin/pages/RentalDetail';
 import PaymentManagement from './superadmin/pages/PaymentManagement';
 import AddCarAdmin from './superadmin/pages/AddCar';
 
@@ -96,6 +98,7 @@ const App: React.FC = () => {
                           <Route path="test-drives" element={<TestDrives />} />
                           <Route path="purchases" element={<Purchases />} />
                           <Route path="rentals" element={<RentalHistory />} />
+                          <Route path="messages" element={<UserMessages />} />
                           <Route path="*" element={<Navigate to="overview" replace />} />
                         </Routes>
                       </PortalLayout>
@@ -126,6 +129,7 @@ const App: React.FC = () => {
                           <Route path="deal" element={<DealOfTheWeekAdmin />} />
                           <Route path="cms" element={<SiteCMS />} />
                           <Route path="rentals" element={<RentalManagement />} />
+                          <Route path="rentals/:id" element={<RentalDetail />} />
                           <Route path="payments" element={<PaymentManagement />} />
                           <Route path="add-car" element={<AddCarAdmin />} />
                           <Route path="*" element={<Navigate to="dashboard" replace />} />

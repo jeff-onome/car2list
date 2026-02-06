@@ -1,42 +1,24 @@
 
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { dbService } from '../../services/database';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { Rental } from '../../types';
-import Swal from 'https://esm.sh/sweetalert2@11';
+import LoadingScreen from '../../components/LoadingScreen';
 
 const RentalManagement: React.FC = () => {
-  const { formatPrice } = useSiteConfig();
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const unsub = dbService.subscribeToAllRentals((data) => {
-      setRentals(data.sort((a,b) => b.createdAt.localeCompare(a.createdAt)));
+      setRentals(data.sort((a, b) => b.createdAt.localeCompare(a.createdAt)));
       setLoading(false);
     });
     return () => unsub();
   }, []);
 
-  const handleAction = async (rid: string, status: Rental['status'], uid: string) => {
-    const confirm = await Swal.fire({
-      title: `${status} Rental?`,
-      icon: 'question',
-      showCancelButton: true,
-      confirmButtonColor: status === 'Accepted' ? '#22c55e' : '#ef4444',
-      background: '#0a0a0a', color: '#fff'
-    });
-
-    if (confirm.isConfirmed) {
-      await dbService.updateRentalStatus(rid, status);
-      await dbService.createNotification(uid, {
-        title: `Rental ${status}`,
-        message: `Your reservation request has been ${status.toLowerCase()} by administration.`,
-        type: status === 'Accepted' ? 'success' : 'warning'
-      });
-      Swal.fire('Updated', `Rental is now ${status}`, 'success');
-    }
-  };
+  if (loading) return <LoadingScreen />;
 
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6">
@@ -51,46 +33,44 @@ const RentalManagement: React.FC = () => {
             <table className="w-full text-left">
                <thead className="bg-white/5 text-[10px] uppercase tracking-widest text-zinc-500 border-b border-white/5">
                  <tr>
-                   <th className="px-8 py-6">Asset & ID</th>
-                   <th className="px-8 py-6">Identity</th>
-                   <th className="px-8 py-6">Schedule</th>
-                   <th className="px-8 py-6">Total</th>
-                   <th className="px-8 py-6">Status</th>
-                   <th className="px-8 py-6 text-right">Governance</th>
+                   <th className="px-8 py-6">Asset</th>
+                   <th className="px-8 py-6">ID / Identity</th>
+                   <th className="px-8 py-6">Date</th>
+                   <th className="px-8 py-6 text-right">Actions</th>
                  </tr>
                </thead>
                <tbody className="divide-y divide-white/5">
-                 {rentals.map(r => (
+                 {rentals.length > 0 ? rentals.map(r => (
                    <tr key={r.id} className="text-sm hover:bg-white/[0.02] transition-colors">
                      <td className="px-8 py-6">
-                        <p className="font-bold uppercase text-white">{r.carName}</p>
-                        <p className="text-[9px] font-mono text-zinc-600 mt-1">{r.id}</p>
+                        <p className="font-bold uppercase text-white tracking-tight">{r.carName}</p>
+                        <p className={`text-[7px] font-bold uppercase tracking-widest mt-1 ${
+                          r.status === 'Accepted' ? 'text-green-500' :
+                          r.status === 'Cancelled' ? 'text-red-500' : 'text-amber-500'
+                        }`}>{r.status}</p>
                      </td>
                      <td className="px-8 py-6">
-                        <p className="text-zinc-300 font-bold">{r.userName}</p>
-                        <p className="text-[10px] text-zinc-500 lowercase">{r.userEmail}</p>
+                        <p className="text-zinc-300 font-bold uppercase tracking-tighter text-xs">{r.userName}</p>
+                        <p className="text-[9px] font-mono text-zinc-600 mt-0.5">{r.id}</p>
                      </td>
                      <td className="px-8 py-6">
-                        <p className="text-zinc-300 font-mono">{new Date(r.startDate).toLocaleDateString()}</p>
-                        <p className="text-[10px] text-zinc-600 uppercase font-bold">{r.duration} Days</p>
-                     </td>
-                     <td className="px-8 py-6 font-mono font-bold text-white">{formatPrice(r.totalPrice)}</td>
-                     <td className="px-8 py-6">
-                        <span className={`px-3 py-1 rounded-full text-[8px] font-bold uppercase tracking-widest border ${
-                          r.status === 'Accepted' ? 'bg-green-500/10 text-green-500 border-green-500/20' :
-                          r.status === 'Cancelled' ? 'bg-red-500/10 text-red-500 border-red-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                        }`}>{r.status}</span>
+                        <p className="text-zinc-400 font-mono text-xs">{new Date(r.startDate).toLocaleDateString()}</p>
+                        <p className="text-[9px] text-zinc-600 uppercase font-bold mt-0.5">{r.duration} Days</p>
                      </td>
                      <td className="px-8 py-6 text-right">
-                        {r.status === 'Pending' && (
-                          <div className="flex gap-3 justify-end">
-                            <button onClick={() => handleAction(r.id, 'Accepted', r.userId)} className="bg-green-500/10 text-green-500 p-2 rounded-full hover:bg-green-500 hover:text-black transition-all">Accept</button>
-                            <button onClick={() => handleAction(r.id, 'Cancelled', r.userId)} className="bg-red-500/10 text-red-500 p-2 rounded-full hover:bg-red-500 hover:text-white transition-all">Cancel</button>
-                          </div>
-                        )}
+                        <Link 
+                          to={`/admin/rentals/${r.id}`}
+                          className="bg-white/5 border border-white/10 text-white px-6 py-2 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all"
+                        >
+                          Manage
+                        </Link>
                      </td>
                    </tr>
-                 ))}
+                 )) : (
+                   <tr>
+                     <td colSpan={4} className="p-20 text-center text-zinc-600 uppercase text-[10px] italic">No experiences logged in the registry.</td>
+                   </tr>
+                 )}
                </tbody>
             </table>
           </div>

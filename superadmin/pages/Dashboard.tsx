@@ -1,19 +1,19 @@
-
 import React, { useState, useEffect } from 'react';
 import { useCars } from '../../context/CarContext';
 import { dbService } from '../../services/database';
 import { useSiteConfig } from '../../context/SiteConfigContext';
-import { User, Rental } from '../../types';
+import { User, Rental, Car } from '../../types';
 import { Link } from 'react-router-dom';
 import LoadingScreen from '../../components/LoadingScreen';
 
 const AdminDashboard: React.FC = () => {
-  const { cars, isLoading: carsLoading } = useCars();
+  const { cars, isLoading: carsLoading, getCarById } = useCars();
   const { formatPrice, config, isLoading: configLoading } = useSiteConfig();
   const [users, setUsers] = useState<User[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   useEffect(() => {
     const unsubUsers = dbService.subscribeToUsers(setUsers);
@@ -28,6 +28,20 @@ const AdminDashboard: React.FC = () => {
       unsubRentals();
     };
   }, []);
+
+  const toggleVisibility = async (e: React.MouseEvent, activity: any) => {
+    e.stopPropagation();
+    const nextState = !activity.hideFromDealer;
+    if (activity.type === 'Rental') {
+      await dbService.updateRentalVisibility(activity.id, nextState);
+    } else {
+      await dbService.updateBookingVisibility(activity.id, nextState);
+    }
+  };
+
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
 
   if (carsLoading || configLoading || dataLoading) return <LoadingScreen />;
 
@@ -61,38 +75,116 @@ const AdminDashboard: React.FC = () => {
                  <span className="text-[10px] text-zinc-600 font-mono">Real-time Global Pulse</span>
               </div>
               <div className="flex-grow overflow-y-auto no-scrollbar space-y-4">
-                 {combinedActivities.length > 0 ? combinedActivities.map((activity, idx) => (
-                   <div key={activity.id || idx} className="glass bg-white/[0.02] p-6 rounded-[2rem] border-white/5 flex justify-between items-center group hover:bg-white/[0.04] transition-all">
-                      <div className="flex gap-6 items-center">
-                         <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-500 group-hover:text-white transition-colors">
-                            {activity.type === 'Rental' ? (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
-                            ) : (
-                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
-                            )}
-                         </div>
-                         <div>
-                            <div className="flex items-center gap-2">
-                               <p className="text-sm font-bold text-white uppercase tracking-tight">{activity.label}</p>
-                               <span className={`px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-widest border ${activity.type === 'Test Drive' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
-                                  {activity.type}
-                               </span>
-                            </div>
-                            <div className="flex items-center gap-2 mt-1">
-                               <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">{activity.userName}</p>
-                               <span className="w-1 h-1 rounded-full bg-zinc-800" />
-                               <p className="text-[9px] text-zinc-600 uppercase tracking-widest">via {activity.dealerName}</p>
-                            </div>
-                         </div>
-                      </div>
-                      <div className="text-right">
-                         <p className="text-[10px] text-zinc-400 font-mono">{activity.date ? new Date(activity.date).toLocaleDateString() : 'N/A'}</p>
-                         <p className={`text-[8px] font-bold uppercase tracking-widest mt-1 ${activity.status === 'Accepted' ? 'text-green-500' : 'text-zinc-600'}`}>
-                            {activity.status || 'Pending'}
-                         </p>
-                      </div>
-                   </div>
-                 )) : (
+                 {combinedActivities.length > 0 ? combinedActivities.map((activity, idx) => {
+                   const isExpanded = expandedId === activity.id;
+                   const carData = getCarById(activity.carId);
+                   const userData = users.find(u => u.id === activity.userId);
+
+                   return (
+                     <div 
+                       key={activity.id || idx} 
+                       onClick={() => toggleExpand(activity.id)}
+                       className={`glass bg-white/[0.02] p-6 rounded-[2rem] border-white/5 flex flex-col transition-all duration-500 cursor-pointer ${isExpanded ? 'bg-white/[0.05] border-white/20' : 'hover:bg-white/[0.04]'}`}
+                     >
+                        <div className="flex justify-between items-center">
+                          <div className="flex gap-6 items-center">
+                             <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-bold text-zinc-500 transition-colors">
+                                {activity.type === 'Rental' ? (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                                ) : (
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                )}
+                             </div>
+                             <div>
+                                <div className="flex items-center gap-2">
+                                   <p className="text-sm font-bold text-white uppercase tracking-tight">{activity.label}</p>
+                                   <span className={`px-1.5 py-0.5 rounded text-[7px] font-bold uppercase tracking-widest border ${activity.type === 'Test Drive' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' : 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'}`}>
+                                      {activity.type}
+                                   </span>
+                                </div>
+                                <p className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold mt-1">{activity.userName}</p>
+                             </div>
+                          </div>
+                          <div className="flex items-center gap-6">
+                             <div className="text-right">
+                               <p className="text-[10px] text-zinc-400 font-mono">{activity.date ? new Date(activity.date).toLocaleDateString() : 'N/A'}</p>
+                               <p className={`text-[8px] font-bold uppercase tracking-widest mt-1 ${activity.status === 'Accepted' || activity.status === 'Confirmed' ? 'text-green-500' : 'text-zinc-600'}`}>
+                                  {activity.status || 'Pending'}
+                               </p>
+                             </div>
+                             
+                             <div className="flex flex-col items-center gap-2 pl-4 border-l border-white/5">
+                                <span className="text-[7px] uppercase font-bold text-zinc-600 tracking-tighter">Dealer Sync</span>
+                                <button 
+                                  onClick={(e) => toggleVisibility(e, activity)}
+                                  className={`p-2 rounded-full transition-all ${activity.hideFromDealer ? 'text-red-500 bg-red-500/10 hover:bg-red-500/20' : 'text-emerald-500 bg-emerald-500/10 hover:bg-emerald-500/20'}`}
+                                  title={activity.hideFromDealer ? 'Dealer view restricted' : 'Dealer can see this booking'}
+                                >
+                                   {activity.hideFromDealer ? (
+                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" /></svg>
+                                   ) : (
+                                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" /></svg>
+                                   )}
+                                </button>
+                             </div>
+                          </div>
+                        </div>
+
+                        {isExpanded && (
+                          <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-3 gap-8 animate-in fade-in slide-in-from-top-4 duration-500">
+                             <div className="space-y-4">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Member Telemetry</p>
+                                <div className="space-y-2">
+                                   <p className="text-xs text-white font-bold">{activity.userName}</p>
+                                   <p className="text-[10px] text-zinc-500 lowercase font-mono">{activity.userEmail || userData?.email || 'email@hidden.com'}</p>
+                                   <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest">Role: {userData?.role || 'Guest'}</p>
+                                </div>
+                             </div>
+                             <div className="space-y-4">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Experience Logistics</p>
+                                <div className="space-y-2">
+                                   <div className="flex justify-between items-center text-[10px]">
+                                      <span className="text-zinc-600 uppercase font-bold">Schedule</span>
+                                      <span className="text-white font-mono">{activity.date} {activity.time && `@ ${activity.time}`}</span>
+                                   </div>
+                                   {activity.type === 'Rental' && (
+                                      <>
+                                         <div className="flex justify-between items-center text-[10px]">
+                                            <span className="text-zinc-600 uppercase font-bold">Duration</span>
+                                            <span className="text-white">{activity.duration} Days</span>
+                                         </div>
+                                         <div className="flex justify-between items-center text-[10px]">
+                                            <span className="text-zinc-600 uppercase font-bold">Location</span>
+                                            <span className="text-white truncate max-w-[120px]">{activity.location || 'HQ'}</span>
+                                         </div>
+                                      </>
+                                   )}
+                                   <div className="flex justify-between items-center text-[10px]">
+                                      <span className="text-zinc-600 uppercase font-bold">Total Val.</span>
+                                      <span className="text-white font-bold">{activity.totalPrice ? formatPrice(activity.totalPrice) : 'Inquiry'}</span>
+                                   </div>
+                                </div>
+                             </div>
+                             <div className="space-y-4">
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Asset Specifications</p>
+                                {carData ? (
+                                  <div className="space-y-2">
+                                     <p className="text-xs text-white font-bold uppercase">{carData.make} {carData.model}</p>
+                                     <div className="flex flex-wrap gap-2">
+                                        <span className="text-[8px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-zinc-400 font-bold">{carData.type}</span>
+                                        <span className="text-[8px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-zinc-400 font-bold">{carData.hp} HP</span>
+                                     </div>
+                                     <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest mt-1">Ref: {carData.id.slice(-6)}</p>
+                                  </div>
+                                ) : (
+                                  <p className="text-[10px] text-zinc-700 italic">Asset data unavailable</p>
+                                )}
+                             </div>
+                          </div>
+                        )}
+                     </div>
+                   );
+                 }) : (
                    <div className="flex flex-col items-center justify-center h-full opacity-30 italic uppercase tracking-[0.2em] text-[10px]">Registry Empty</div>
                  )}
               </div>

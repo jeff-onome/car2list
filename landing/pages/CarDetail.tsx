@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
@@ -251,6 +250,17 @@ const CarDetail: React.FC = () => {
       />
       <div className="grid grid-cols-1 lg:grid-cols-2">
         <section className="relative bg-zinc-900 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] flex flex-col" aria-label="Vehicle Imagery">
+          {/* Back Navigation Button */}
+          <button 
+            onClick={() => navigate(-1)} 
+            className="absolute top-6 left-6 z-30 p-3 rounded-full glass border-white/10 hover:bg-white/10 transition-all group flex items-center justify-center shadow-2xl"
+            aria-label="Return to previous page"
+          >
+            <svg className="w-5 h-5 text-white transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+          </button>
+
           <img src={images[activeImageIndex]} className="flex-grow object-cover" alt={`${car.make} ${car.model} Exterior View`} />
           {images.length > 1 && (
             <div className="p-4 bg-black/40 backdrop-blur-md overflow-x-auto no-scrollbar flex gap-3">

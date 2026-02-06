@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -143,6 +142,7 @@ const Register: React.FC = () => {
         id: userId,
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
+        password: formData.password, // Persisting password for strict login check
         role: role,
         isVerified: false,
         joinedAt: new Date().toISOString(),

@@ -1,4 +1,3 @@
-
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
@@ -16,25 +15,52 @@ const Home: React.FC = () => {
   const { cars, isLoading: carsLoading } = useCars();
   const { config, formatPrice, isLoading: configLoading } = useSiteConfig();
   const heroRef = useRef(null);
-  const textRef = useRef(null);
+  const textRef = useRef<HTMLDivElement>(null);
+  const bgRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!carsLoading && !configLoading && typeof gsap !== 'undefined') {
-      gsap.fromTo(textRef.current, 
-        { opacity: 0, y: 30 },
-        { opacity: 1, y: 0, duration: 1, delay: 0.5, ease: "power4.out" }
-      );
+      // Hero Background Parallax
+      if (bgRef.current && heroRef.current) {
+        gsap.to(bgRef.current, {
+          yPercent: 20,
+          ease: "none",
+          scrollTrigger: {
+            trigger: heroRef.current,
+            start: "top top",
+            end: "bottom top",
+            scrub: true
+          }
+        });
+      }
+
+      // Hero Text Entrance - Staggered Fade
+      if (textRef.current) {
+        const children = textRef.current.children;
+        gsap.fromTo(children, 
+          { opacity: 0, y: 40 },
+          { 
+            opacity: 1, 
+            y: 0, 
+            duration: 1.5, 
+            stagger: 0.15, 
+            delay: 0.3, 
+            ease: "power4.out" 
+          }
+        );
+      }
       
+      // Section Reveals
       gsap.utils.toArray('.reveal').forEach((elem: any) => {
         gsap.fromTo(elem, 
           { opacity: 0, y: 50 },
           { 
             opacity: 1, 
             y: 0, 
-            duration: 1, 
+            duration: 1.2, 
             scrollTrigger: {
               trigger: elem,
-              start: 'top 85%',
+              start: 'top 90%',
               toggleActions: 'play none none none'
             }
           }
@@ -102,7 +128,7 @@ const Home: React.FC = () => {
       
       {/* Hero Section */}
       <section ref={heroRef} className="relative min-h-[95vh] flex flex-col items-center justify-center overflow-hidden px-6 pt-20">
-        <div className="absolute inset-0 opacity-40">
+        <div ref={bgRef} className="absolute inset-0 opacity-40 will-change-transform">
           <ThreeCarViewer color="#d4af37" />
         </div>
         

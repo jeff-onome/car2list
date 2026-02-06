@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -10,25 +9,42 @@ import LoadingScreen from '../../components/LoadingScreen';
 
 const DealerDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { cars, isLoading: carsLoading } = useCars();
+  const { cars, isLoading: carsLoading, getCarById } = useCars();
   const { formatPrice, isLoading: configLoading } = useSiteConfig();
   const [rentals, setRentals] = useState<Rental[]>([]);
-  const [rentalsLoading, setRentalsLoading] = useState(true);
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
   
   const dealerCars = cars.filter(c => c.dealerId === user?.id);
   const totalValuation = dealerCars.reduce((acc, c) => acc + c.price, 0);
 
   useEffect(() => {
     if (user?.id) {
-      const unsub = dbService.subscribeToDealerRentals(user.id, (data) => {
+      const unsubRentals = dbService.subscribeToDealerRentals(user.id, (data) => {
         setRentals(data);
-        setRentalsLoading(false);
       });
-      return () => unsub();
+      const unsubBookings = dbService.subscribeToDealerBookings(user.id, (data) => {
+        setBookings(data);
+        setDataLoading(false);
+      });
+      return () => {
+        unsubRentals();
+        unsubBookings();
+      };
     }
   }, [user]);
 
-  if (carsLoading || configLoading || rentalsLoading) return <LoadingScreen />;
+  const toggleExpand = (id: string) => {
+    setExpandedId(expandedId === id ? null : id);
+  };
+
+  if (carsLoading || configLoading || dataLoading) return <LoadingScreen />;
+
+  const activeActivities = [
+    ...rentals.map(r => ({ ...r, type: 'Rental', displayDate: new Date(r.startDate).toLocaleDateString() + ` (${r.duration}d)`, label: r.carName })),
+    ...bookings.map(b => ({ ...b, type: 'Test Drive', displayDate: new Date(b.date).toLocaleDateString() + ` @ ${b.time}`, label: b.car }))
+  ].sort((a,b) => new Date(b.createdAt || b.date).getTime() - new Date(a.createdAt || a.date).getTime());
 
   return (
     <div className="min-h-screen bg-black pt-24 pb-20 px-6">
@@ -44,45 +60,115 @@ const DealerDashboard: React.FC = () => {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <StatCard label="Fleet Valuation" val={formatPrice(totalValuation)} />
           <StatCard label="Active Listings" val={dealerCars.filter(c=>c.status==='approved').length.toString()} />
-          <StatCard label="Fleet Rentals" val={rentals.length.toString()} highlight />
+          <StatCard label="Total Activities" val={activeActivities.length.toString()} highlight />
         </div>
 
-        <div className="glass rounded-[3rem] overflow-hidden border-white/5 shadow-2xl">
-          <div className="p-8 border-b border-white/5 bg-white/5 flex justify-between items-center">
+        <div className="space-y-8">
+          <div className="flex justify-between items-center border-b border-white/5 pb-4">
             <h3 className="font-bold uppercase tracking-widest text-[10px] text-zinc-500">Live Experience Fleet</h3>
+            <span className="text-[8px] text-zinc-700 uppercase font-bold tracking-widest">Click to Inspect Record</span>
           </div>
-          <div className="overflow-x-auto no-scrollbar">
-            <table className="w-full text-left">
-              <thead className="text-[9px] uppercase tracking-[0.2em] text-zinc-600 bg-black/20 border-b border-white/5">
-                <tr>
-                  <th className="px-8 py-5">Vehicle</th>
-                  <th className="px-8 py-5">Client Identity</th>
-                  <th className="px-8 py-5">Schedule</th>
-                  <th className="px-8 py-5 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {rentals.length > 0 ? rentals.map(r => (
-                  <tr key={r.id} className="text-sm hover:bg-white/[0.01] transition-colors">
-                    <td className="px-8 py-5 font-bold uppercase text-white">{r.carName}</td>
-                    <td className="px-8 py-5">
-                       <p className="text-zinc-300">{r.userName}</p>
-                       <p className="text-[10px] text-zinc-500 lowercase">{r.userEmail}</p>
-                    </td>
-                    <td className="px-8 py-5 text-zinc-400 font-mono text-xs">{new Date(r.startDate).toLocaleDateString()} ({r.duration}d)</td>
-                    <td className="px-8 py-5 text-right">
-                       <span className={`px-3 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border ${
-                         r.status === 'Accepted' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
-                       }`}>{r.status}</span>
-                    </td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={4} className="p-20 text-center text-zinc-600 uppercase text-[10px] italic">No experiences logged.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+
+          <div className="space-y-4">
+            {activeActivities.length > 0 ? activeActivities.map((r, idx) => {
+              const isExpanded = expandedId === r.id;
+              const carData = getCarById(r.carId);
+
+              return (
+                <div 
+                  key={r.id || idx}
+                  onClick={() => toggleExpand(r.id)}
+                  className={`glass bg-white/[0.02] p-6 rounded-[2.5rem] border border-white/5 transition-all duration-500 cursor-pointer ${isExpanded ? 'bg-white/[0.05] border-white/20' : 'hover:bg-white/[0.04]'}`}
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="flex gap-6 items-center">
+                      <span className={`px-2 py-0.5 rounded text-[7px] font-bold uppercase tracking-widest border shrink-0 ${
+                        r.type === 'Rental' ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-blue-500/10 text-blue-500 border-blue-500/20'
+                      }`}>{r.type}</span>
+                      <div>
+                        <p className="font-bold uppercase text-white text-sm tracking-tight">{r.label}</p>
+                        <p className="text-[10px] text-zinc-500 uppercase tracking-widest font-bold mt-0.5">{r.userName}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-12 text-right">
+                       <div>
+                          <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest mb-1">Schedule</p>
+                          <p className="text-zinc-400 font-mono text-xs">{r.displayDate}</p>
+                       </div>
+                       <div>
+                          <p className="text-[9px] text-zinc-600 uppercase font-bold tracking-widest mb-1">Status</p>
+                          <span className={`px-3 py-0.5 rounded-full text-[8px] font-bold uppercase tracking-widest border ${
+                            r.status === 'Accepted' || r.status === 'Confirmed' ? 'bg-green-500/10 text-green-500 border-green-500/20' : 'bg-amber-500/10 text-amber-500 border-amber-500/20'
+                          }`}>{r.status}</span>
+                       </div>
+                    </div>
+                  </div>
+
+                  {isExpanded && (
+                    <div className="mt-8 pt-8 border-t border-white/5 grid grid-cols-1 md:grid-cols-3 gap-10 animate-in fade-in slide-in-from-top-4 duration-500">
+                       <div className="space-y-4">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Client Protocol</p>
+                          <div className="space-y-2">
+                             <p className="text-xs text-white font-bold">{r.userName}</p>
+                             <p className="text-[10px] text-zinc-500 lowercase font-mono">{r.userEmail || 'Private Registry'}</p>
+                             <div className="pt-2">
+                                <span className="text-[7px] bg-white/5 border border-white/10 px-2 py-0.5 rounded text-zinc-400 font-bold uppercase tracking-widest">Verified Identity</span>
+                             </div>
+                          </div>
+                       </div>
+                       <div className="space-y-4">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Logistic Spec</p>
+                          <div className="space-y-2">
+                             <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-zinc-600 uppercase font-bold">Start Date</span>
+                                <span className="text-white font-mono">{new Date(r.startDate || r.date).toLocaleDateString()}</span>
+                             </div>
+                             {r.type === 'Rental' && (
+                                <>
+                                   <div className="flex justify-between items-center text-[10px]">
+                                      <span className="text-zinc-600 uppercase font-bold">Duration</span>
+                                      <span className="text-white">{r.duration} Days</span>
+                                   </div>
+                                   <div className="flex justify-between items-center text-[10px]">
+                                      <span className="text-zinc-600 uppercase font-bold">Delivery Pt.</span>
+                                      <span className="text-white truncate max-w-[120px]">{r.location || 'Private Port'}</span>
+                                   </div>
+                                </>
+                             )}
+                             <div className="flex justify-between items-center text-[10px]">
+                                <span className="text-zinc-600 uppercase font-bold">Booking Val.</span>
+                                <span className="text-white font-bold">{r.totalPrice ? formatPrice(r.totalPrice) : 'Viewing Fee Apply'}</span>
+                             </div>
+                          </div>
+                       </div>
+                       <div className="space-y-4">
+                          <p className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Asset Registry</p>
+                          {carData ? (
+                            <div className="space-y-2">
+                               <p className="text-xs text-white font-bold uppercase">{carData.make} {carData.model}</p>
+                               <div className="flex flex-wrap gap-2">
+                                  <span className="text-[8px] bg-zinc-900 border border-white/5 px-2 py-0.5 rounded text-zinc-400 font-bold">{carData.year}</span>
+                                  <span className="text-[8px] bg-zinc-900 border border-white/5 px-2 py-0.5 rounded text-zinc-400 font-bold">{carData.transmission}</span>
+                               </div>
+                               <div className="pt-2 flex items-center gap-2">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-green-500" />
+                                  <span className="text-[8px] text-zinc-500 uppercase font-bold">Active in Showroom</span>
+                               </div>
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-zinc-700 italic">Inventory Link Severed</p>
+                          )}
+                       </div>
+                    </div>
+                  )}
+                </div>
+              );
+            }) : (
+              <div className="p-32 glass rounded-[3rem] text-center border-white/5">
+                <p className="text-zinc-600 uppercase text-[10px] tracking-[0.3em] italic">No experiences logged in the registry.</p>
+              </div>
+            )}
           </div>
         </div>
       </div>

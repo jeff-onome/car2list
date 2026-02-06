@@ -1,10 +1,11 @@
-
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Swal from 'https://esm.sh/sweetalert2@11';
+import { dbService } from '../../services/database';
 
 const AddUser: React.FC = () => {
   const navigate = useNavigate();
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
@@ -13,16 +14,38 @@ const AddUser: React.FC = () => {
     isVerified: true
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    Swal.fire({
-      title: 'User Created',
-      text: `Account for ${formData.name} has been successfully initialized.`,
-      icon: 'success',
-      confirmButtonColor: '#000',
-      background: '#111',
-      color: '#fff'
-    }).then(() => navigate('/admin/users'));
+    setIsSubmitting(true);
+    
+    const userId = `u_${Date.now()}`;
+    const userData = {
+      ...formData,
+      id: userId,
+      joinedAt: new Date().toISOString(),
+    };
+
+    try {
+      await dbService.saveUser(userId, userData as any);
+      Swal.fire({
+        title: 'User Created',
+        text: `Account for ${formData.name} has been successfully initialized.`,
+        icon: 'success',
+        confirmButtonColor: '#000',
+        background: '#111',
+        color: '#fff'
+      }).then(() => navigate('/admin/users'));
+    } catch (err) {
+      Swal.fire({
+        title: 'Enrollment Error',
+        text: 'The registry failed to synchronize. Please try again.',
+        icon: 'error',
+        background: '#111',
+        color: '#fff'
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -86,8 +109,12 @@ const AddUser: React.FC = () => {
           </div>
 
           <div className="pt-8">
-            <button type="submit" className="w-full bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl">
-              Initialize Account
+            <button 
+              type="submit" 
+              disabled={isSubmitting}
+              className="w-full bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl disabled:opacity-50"
+            >
+              {isSubmitting ? 'Synchronizing...' : 'Initialize Account'}
             </button>
           </div>
         </form>

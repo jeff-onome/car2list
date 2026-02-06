@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'https://esm.sh/sweetalert2@11';
@@ -16,6 +15,63 @@ const ManageUsers: React.FC = () => {
     });
     return () => unsubscribe();
   }, []);
+
+  const handleBroadcast = async () => {
+    const { value: broadcastData } = await Swal.fire({
+      title: `<span style="text-transform: uppercase; font-size: 1.25rem;">Broadcast Bulletin</span>`,
+      html: `
+        <div style="text-align: left; padding: 1rem; color: #a1a1aa; font-family: Inter, sans-serif;">
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Target Group</label>
+            <select id="broadcast-target" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
+              <option value="ALL">All Registered Members</option>
+              <option value="DEALER">Authorized Dealers Only</option>
+            </select>
+          </div>
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Bulletin Title</label>
+            <input id="broadcast-title" type="text" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" placeholder="e.g. System Maintenance">
+          </div>
+          <div>
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Message Payload</label>
+            <textarea id="broadcast-msg" class="swal2-textarea" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1.5rem; min-height: 120px;" placeholder="Compose global message..."></textarea>
+          </div>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'TRANSMIT BULLETIN',
+      background: '#0a0a0a',
+      color: '#fff',
+      customClass: {
+        popup: 'glass rounded-[2.5rem] border border-white/10 shadow-2xl',
+        confirmButton: 'bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest'
+      },
+      preConfirm: () => {
+        const target = (document.getElementById('broadcast-target') as HTMLSelectElement).value;
+        const title = (document.getElementById('broadcast-title') as HTMLInputElement).value;
+        const message = (document.getElementById('broadcast-msg') as HTMLTextAreaElement).value;
+        if (!title || !message) {
+          Swal.showValidationMessage('All fields are mandatory for broadcast transmission.');
+          return false;
+        }
+        return { target, title, message };
+      }
+    });
+
+    if (broadcastData) {
+      await dbService.sendBroadcastNotification(broadcastData.target as any, {
+        title: `[SYSTEM] ${broadcastData.title}`,
+        message: broadcastData.message,
+        type: 'info'
+      });
+      Swal.fire({
+        title: 'Broadcast Dispatched',
+        text: `Bulletin sent to ${broadcastData.target === 'ALL' ? 'all members' : 'dealers'}.`,
+        icon: 'success',
+        background: '#0a0a0a', color: '#fff'
+      });
+    }
+  };
 
   const handleBulkSuspension = async (suspend: boolean) => {
     const action = suspend ? 'Suspend' : 'Restore';
@@ -61,6 +117,15 @@ const ManageUsers: React.FC = () => {
       html: `
         <div style="text-align: left; padding: 1rem; color: #a1a1aa; font-family: Inter, sans-serif;">
           <p style="margin-bottom: 0.5rem;"><strong style="color: #fff;">Identity:</strong> ${user.name}</p>
+          
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Direct Message</label>
+            <div style="display: flex; gap: 8px;">
+              <input id="swal-direct-msg" type="text" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem; height: 40px; font-size: 12px;" placeholder="Message user...">
+              <button id="swal-send-direct" class="swal2-confirm swal2-styled" style="margin: 0; padding: 0 15px; border-radius: 1rem; font-size: 10px; background: #fff; color: #000;">SEND</button>
+            </div>
+          </div>
+
           <div style="margin-bottom: 1rem;">
             <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Change Role</label>
             <select id="swal-role" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
@@ -85,14 +150,29 @@ const ManageUsers: React.FC = () => {
       background: '#0a0a0a',
       color: '#fff',
       customClass: {
-        popup: 'glass rounded-[2rem] border border-white/10',
+        popup: 'glass rounded-[2rem] border border-white/10 shadow-2xl',
         confirmButton: 'bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest',
         cancelButton: 'text-zinc-500 font-bold text-[10px] uppercase tracking-widest bg-transparent border border-white/10'
       },
       didOpen: () => {
         const suspendBtn = document.getElementById('swal-suspend-btn');
         const verifyBtn = document.getElementById('swal-verify-btn');
+        const sendMsgBtn = document.getElementById('swal-send-direct');
         
+        sendMsgBtn?.addEventListener('click', async () => {
+          const msgInput = document.getElementById('swal-direct-msg') as HTMLInputElement;
+          const msg = msgInput.value;
+          if (!msg) return;
+          
+          await dbService.createNotification(user.id, {
+            title: 'Administrative Message',
+            message: msg,
+            type: 'info'
+          });
+          msgInput.value = '';
+          Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Message Dispatched', showConfirmButton: false, timer: 1500, background: '#111', color: '#fff' });
+        });
+
         suspendBtn?.addEventListener('click', async () => {
           const nextState = !user.isSuspended;
           await dbService.updateUser(user.id, { isSuspended: nextState });
@@ -145,6 +225,12 @@ const ManageUsers: React.FC = () => {
             <p className="text-zinc-500 mt-2 text-sm">Secure management of the AutoSphere member base.</p>
           </div>
           <div className="flex flex-wrap gap-4 w-full md:w-auto">
+            <button 
+              onClick={handleBroadcast}
+              className="flex-grow md:flex-grow-0 bg-blue-500/10 text-blue-500 border border-blue-500/20 px-6 md:px-8 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-blue-500 hover:text-white transition-all shadow-lg"
+            >
+              Broadcast Hub
+            </button>
             <button 
               onClick={() => handleBulkSuspension(true)}
               className="flex-grow md:flex-grow-0 bg-red-500/10 text-red-500 border border-red-500/20 px-4 md:px-6 py-2.5 rounded-full font-bold text-[10px] uppercase tracking-widest hover:bg-red-500 hover:text-white transition-all"
