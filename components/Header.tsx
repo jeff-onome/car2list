@@ -118,7 +118,7 @@ const Header: React.FC = () => {
         ))}
       </nav>
 
-      <div className="flex items-center space-x-3">
+      <div className="flex items-center space-x-2 md:space-x-3">
         <button onClick={toggleDarkMode} className="p-2 hover:bg-white/5 rounded-full transition-colors text-zinc-500">
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" /></svg>
         </button>
@@ -136,30 +136,30 @@ const Header: React.FC = () => {
             </button>
 
             {isNotifyOpen && (
-              <div className="absolute right-0 mt-3 w-80 bg-zinc-950 rounded-2xl border border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[100]">
-                <div className="px-6 py-4 border-b border-white/5 flex justify-between items-center bg-zinc-900/50">
-                  <h4 className="text-[10px] font-bold uppercase tracking-widest text-white">Registry Alerts</h4>
-                  <div className="flex gap-4">
-                    <button onClick={markAllRead} className="text-[8px] text-zinc-500 uppercase font-bold hover:text-white transition-colors">Mark All Read</button>
-                    <button onClick={clearNotifications} className="text-[8px] text-zinc-700 uppercase font-bold hover:text-red-400 transition-colors">Flush</button>
+              <div className="fixed md:absolute top-16 md:top-full left-4 right-4 md:left-auto md:right-0 md:mt-3 md:w-80 bg-zinc-950 rounded-2xl md:rounded-[2rem] border border-white/10 shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200 z-[100]">
+                <div className="px-4 md:px-6 py-3 md:py-4 border-b border-white/5 flex justify-between items-center bg-zinc-900/50">
+                  <h4 className="text-[9px] md:text-[10px] font-bold uppercase tracking-widest text-white">Registry Alerts</h4>
+                  <div className="flex gap-3 md:gap-4">
+                    <button onClick={markAllRead} className="text-[7px] md:text-[8px] text-zinc-500 uppercase font-bold hover:text-white transition-colors">Mark All</button>
+                    <button onClick={clearNotifications} className="text-[7px] md:text-[8px] text-zinc-700 uppercase font-bold hover:text-red-400 transition-colors">Flush</button>
                   </div>
                 </div>
-                <div className="max-h-[400px] overflow-y-auto no-scrollbar">
+                <div className="max-h-[300px] md:max-h-[400px] overflow-y-auto no-scrollbar">
                   {notifications.length > 0 ? (
                     notifications.map((n) => (
                       <div 
                         key={n.id} 
                         onClick={() => markNotificationAsRead(n.id)}
-                        className={`p-5 hover:bg-white/[0.03] transition-colors cursor-pointer border-b border-white/5 group ${!n.read ? 'bg-white/[0.01]' : 'opacity-40'}`}
+                        className={`p-4 md:p-5 hover:bg-white/[0.03] transition-colors cursor-pointer border-b border-white/5 group ${!n.read ? 'bg-white/[0.01]' : 'opacity-40'}`}
                       >
-                        <div className="flex items-start gap-4">
-                          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.type === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : n.type === 'warning' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]'}`} />
-                          <div className="space-y-1">
-                            <p className="text-xs font-bold uppercase tracking-tight text-white group-hover:text-white transition-colors">{n.title}</p>
-                            <p className="text-[10px] text-zinc-500 leading-relaxed uppercase tracking-tighter">{n.message}</p>
-                            <div className="flex items-center gap-2 pt-2">
-                               <span className="text-[8px] font-mono text-zinc-600 font-bold">{formatTime(n.time)}</span>
-                               {!n.read && <span className="text-[7px] bg-white/10 text-white px-1.5 rounded-full font-bold">UNREAD</span>}
+                        <div className="flex items-start gap-3 md:gap-4">
+                          <div className={`w-1.5 h-1.5 md:w-2 md:h-2 rounded-full mt-1.5 shrink-0 ${n.type === 'success' ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.4)]' : n.type === 'warning' ? 'bg-amber-500 shadow-[0_0_8px_rgba(245,158,11,0.4)]' : 'bg-white shadow-[0_0_8px_rgba(255,255,255,0.4)]'}`} />
+                          <div className="space-y-0.5 md:space-y-1">
+                            <p className="text-[10px] md:text-xs font-bold uppercase tracking-tight text-white group-hover:text-white transition-colors">{n.title}</p>
+                            <p className="text-[9px] md:text-[10px] text-zinc-500 leading-relaxed uppercase tracking-tighter line-clamp-2">{n.message}</p>
+                            <div className="flex items-center gap-2 pt-1 md:pt-2">
+                               <span className="text-[7px] md:text-[8px] font-mono text-zinc-600 font-bold">{formatTime(n.time)}</span>
+                               {!n.read && <span className="text-[6px] md:text-[7px] bg-white/10 text-white px-1.5 rounded-full font-bold">UNREAD</span>}
                             </div>
                           </div>
                         </div>
@@ -218,7 +218,7 @@ const Header: React.FC = () => {
         )}
         
         {!isPortal && (
-          <button className="lg:hidden p-2 text-zinc-400" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle Menu">
+          <button className="lg:hidden p-2 text-zinc-400 border border-white/5 rounded-full hover:bg-white/5 transition-all" onClick={() => setIsMenuOpen(!isMenuOpen)} aria-label="Toggle Menu">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               {isMenuOpen ? (
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
@@ -231,7 +231,7 @@ const Header: React.FC = () => {
       </div>
 
       {isMenuOpen && !isPortal && (
-        <div className="absolute top-16 left-0 right-0 bg-zinc-950 border-b border-white/10 flex flex-col p-8 space-y-6 lg:hidden animate-in slide-in-from-top-2 shadow-2xl">
+        <div className="fixed top-16 left-0 right-0 bg-zinc-950 border-b border-white/10 flex flex-col p-8 space-y-6 lg:hidden animate-in slide-in-from-top-2 shadow-2xl z-[45]">
           {linksToDisplay.map(link => (
             <Link 
               key={link.path} 
@@ -246,7 +246,7 @@ const Header: React.FC = () => {
             <Link 
               to="/login" 
               onClick={() => setIsMenuOpen(false)} 
-              className="bg-white/5 border border-white/10 text-white py-4 rounded-xl font-bold text-center uppercase tracking-widest text-xs flex items-center justify-center gap-3"
+              className="bg-white text-black py-4 rounded-xl font-bold text-center uppercase tracking-widest text-[10px] flex items-center justify-center gap-3 shadow-xl"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />

@@ -4,10 +4,11 @@ import { useAuth } from '../../context/AuthContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { dbService } from '../../services/database';
 import { Rental } from '../../types';
+import LoadingScreen from '../../components/LoadingScreen';
 
 const RentalHistory: React.FC = () => {
   const { user } = useAuth();
-  const { formatPrice } = useSiteConfig();
+  const { formatPrice, isLoading: configLoading } = useSiteConfig();
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -21,14 +22,14 @@ const RentalHistory: React.FC = () => {
     }
   }, [user]);
 
+  if (loading || configLoading) return <LoadingScreen />;
+
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6">
       <div className="max-w-6xl mx-auto">
         <h1 className="text-4xl font-bold uppercase tracking-tighter mb-12">Experience Log</h1>
         
-        {loading ? (
-          <div className="py-20 text-center text-zinc-700 animate-pulse uppercase text-[10px] tracking-widest">Syncing experience history...</div>
-        ) : rentals.length > 0 ? (
+        {rentals.length > 0 ? (
           <div className="grid gap-6">
             {rentals.map(r => (
               <div key={r.id} className="glass p-8 rounded-[2.5rem] border-white/5 flex flex-col md:flex-row justify-between items-center gap-8 group hover:bg-white/[0.02] transition-all">

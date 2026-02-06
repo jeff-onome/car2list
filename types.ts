@@ -111,6 +111,51 @@ export interface CurrencyConfig {
   rate: number;
 }
 
+export interface HomePageConfig {
+  heritageTitle: string;
+  heritageText: string;
+  servicesTitle: string;
+  services: { title: string; desc: string }[];
+}
+
+export interface AboutPageConfig {
+  heroText: string;
+  missionTitle: string;
+  missionText: string;
+  valuesTitle: string;
+  valuesText: string;
+  imageUrl: string;
+}
+
+export interface FAQItem {
+  q: string;
+  a: string;
+}
+
+export interface ContactPageConfig {
+  address: string;
+  email: string;
+  phone: string;
+  description: string;
+}
+
+export interface FinancingPageConfig {
+  heroText: string;
+  cards: { title: string; desc: string }[];
+}
+
+export interface InventoryPageConfig {
+  title: string;
+  description: string;
+}
+
+export interface SEOMetadata {
+  metaTitle: string;
+  metaDescription: string;
+  keywords: string;
+  ogImage: string;
+}
+
 export interface SiteConfig {
   siteName: string;
   heroTitle: string;
@@ -124,13 +169,14 @@ export interface SiteConfig {
   socialLinks: Record<string, string>;
   customSections: Record<string, CustomSection>;
   financials: PlatformFinancials;
-  liveChatScript: string; // Dynamic integration field
-  inventoryPage: any;
-  homePage: any;
-  aboutPage: any;
-  faqPage: any[];
-  contactPage: any;
-  financingPage: any;
+  liveChatScript: string;
+  inventoryPage: InventoryPageConfig;
+  homePage: HomePageConfig;
+  aboutPage: AboutPageConfig;
+  faqPage: FAQItem[];
+  contactPage: ContactPageConfig;
+  financingPage: FinancingPageConfig;
   privacyPolicy: string;
   termsOfService: string;
+  seo: SEOMetadata;
 }

@@ -7,14 +7,15 @@ import { useUserData } from '../../context/UserDataContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { dbService } from '../../services/database';
 import SEO from '../../components/SEO';
+import LoadingScreen from '../../components/LoadingScreen';
 import Swal from 'https://esm.sh/sweetalert2@11';
 
 const CarDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { user } = useAuth();
-  const { getCarById, favorites, toggleFavorite } = useCars();
+  const { getCarById, favorites, isLoading: carsLoading } = useCars();
   const { addRecentlyViewed } = useUserData();
-  const { formatPrice, config } = useSiteConfig();
+  const { formatPrice, config, isLoading: configLoading } = useSiteConfig();
   const navigate = useNavigate();
   
   const car = getCarById(id || '');
@@ -25,11 +26,38 @@ const CarDetail: React.FC = () => {
     window.scrollTo(0, 0);
   }, [id]);
 
+  if (carsLoading || configLoading) return <LoadingScreen />;
   if (!car) return <div className="min-h-screen flex items-center justify-center text-white">Car not found.</div>;
 
   const isFav = favorites.includes(car.id);
   const images = car.images && car.images.length > 0 ? car.images : ['https://images.unsplash.com/photo-1503376780353-7e6692767b70?q=80&w=1200'];
   const isRental = car.categories?.includes('Rental');
+
+  const carSchema = {
+    "@context": "https://schema.org/",
+    "@type": "Product",
+    "name": `${car.year} ${car.make} ${car.model}`,
+    "image": images,
+    "description": car.description,
+    "brand": {
+      "@type": "Brand",
+      "name": car.make
+    },
+    "offers": {
+      "@type": "Offer",
+      "url": window.location.href,
+      "priceCurrency": "USD",
+      "price": car.price,
+      "availability": "https://schema.org/InStock",
+      "itemCondition": car.categories.includes('New') ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition"
+    },
+    "additionalProperty": [
+      { "@type": "PropertyValue", "name": "Horsepower", "value": car.hp },
+      { "@type": "PropertyValue", "name": "Acceleration", "value": car.acceleration },
+      { "@type": "PropertyValue", "name": "Fuel Type", "value": car.fuel },
+      { "@type": "PropertyValue", "name": "Mileage", "value": car.mileage }
+    ]
+  };
 
   const handlePaymentPortal = async (itemType: 'Purchase' | 'Rental', amount: number, desc: string, rentalId?: string) => {
     if (!user) {
@@ -214,39 +242,53 @@ const CarDetail: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-black text-white pt-16">
-      <SEO title={`${car.year} ${car.make}`} description={car.description} />
+      <SEO 
+        title={`${car.year} ${car.make} ${car.model} for Sale/Rent`} 
+        description={`${car.make} ${car.model} ${car.year}: ${car.hp} HP, ${car.acceleration} acceleration. Explore this high-performance luxury vehicle at AutoSphere.`} 
+        ogImage={images[0]}
+        ogType="product"
+        schema={carSchema}
+      />
       <div className="grid grid-cols-1 lg:grid-cols-2">
-        <div className="relative bg-zinc-900 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] flex flex-col">
-          <img src={images[activeImageIndex]} className="flex-grow object-cover" alt="" />
+        <section className="relative bg-zinc-900 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] flex flex-col" aria-label="Vehicle Imagery">
+          <img src={images[activeImageIndex]} className="flex-grow object-cover" alt={`${car.make} ${car.model} Exterior View`} />
           {images.length > 1 && (
             <div className="p-4 bg-black/40 backdrop-blur-md overflow-x-auto no-scrollbar flex gap-3">
               {images.map((img, idx) => (
-                <button key={idx} onClick={() => setActiveImageIndex(idx)} className={`w-20 aspect-video border-2 rounded ${activeImageIndex === idx ? 'border-white' : 'border-transparent'}`}>
-                  <img src={img} className="w-full h-full object-cover" />
+                <button 
+                  key={idx} 
+                  onClick={() => setActiveImageIndex(idx)} 
+                  aria-label={`View Image ${idx + 1}`}
+                  className={`w-20 aspect-video border-2 rounded transition-all ${activeImageIndex === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                >
+                  <img src={img} className="w-full h-full object-cover" alt="" />
                 </button>
               ))}
             </div>
           )}
-        </div>
-        <div className="p-8 md:p-16 space-y-12">
-          <div>
+        </section>
+        <article className="p-8 md:p-16 space-y-12">
+          <header>
             <div className="flex gap-2 mb-4">
               {car.categories.map(c => <span key={c} className="bg-white/10 px-3 py-1 rounded-full text-[8px] uppercase font-bold">{c}</span>)}
             </div>
             <h1 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter leading-none">{car.make} {car.model}</h1>
             <p className="text-3xl font-light text-zinc-300 mt-4">{formatPrice(car.price)} {isRental && '/ day'}</p>
-          </div>
-          <p className="text-zinc-400 text-lg leading-relaxed">{car.description}</p>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8 border-t border-white/10">
-            <Spec label="Power" val={`${car.hp} HP`} /><Spec label="0-100" val={car.acceleration} /><Spec label="Fuel" val={car.fuel} /><Spec label="Mileage" val={`${car.mileage} MI`} />
-          </div>
+          </header>
+          <section>
+            <h2 className="sr-only">Vehicle Description</h2>
+            <p className="text-zinc-400 text-lg leading-relaxed">{car.description}</p>
+          </section>
+          <section className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8 border-t border-white/10" aria-label="Technical Specifications">
+            <Spec label="Engine Power" val={`${car.hp} HP`} /><Spec label="0-100 km/h" val={car.acceleration} /><Spec label="Fuel Source" val={car.fuel} /><Spec label="Total Mileage" val={`${car.mileage} MI`} />
+          </section>
           <div className="pt-8 flex flex-col sm:flex-row gap-4">
-            <button onClick={() => isRental ? openBookingModal('Rental') : handlePaymentPortal('Purchase', car.price, `Full acquisition of ${car.make} ${car.model}`)} className="flex-grow bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-200">
-              {isRental ? 'Initialize Rental' : 'Acquire Now'}
+            <button onClick={() => isRental ? openBookingModal('Rental') : handlePaymentPortal('Purchase', car.price, `Full acquisition of ${car.make} ${car.model}`)} className="flex-grow bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 shadow-2xl transition-all">
+              {isRental ? 'Initialize Rental' : 'Acquire Masterpiece'}
             </button>
-            <button onClick={() => openBookingModal('Test Drive')} className="flex-grow border border-white/20 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/5">Book Test Drive</button>
+            <button onClick={() => openBookingModal('Test Drive')} className="flex-grow border border-white/20 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/5 transition-all">Schedule Viewing</button>
           </div>
-        </div>
+        </article>
       </div>
     </div>
   );
@@ -254,7 +296,7 @@ const CarDetail: React.FC = () => {
 
 const Spec = ({ label, val }: any) => (
   <div>
-    <h4 className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1 font-bold">{label}</h4>
+    <h3 className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1 font-bold">{label}</h3>
     <p className="text-lg font-bold">{val}</p>
   </div>
 );

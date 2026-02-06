@@ -7,18 +7,19 @@ import ThreeCarViewer from '../../components/ThreeCarViewer';
 import FeaturedGrid from '../components/FeaturedGrid';
 import CountdownTimer from '../components/CountdownTimer';
 import SEO from '../../components/SEO';
+import LoadingScreen from '../../components/LoadingScreen';
 import { CustomSection as CustomSectionType } from '../../types';
 
 declare const gsap: any;
 
 const Home: React.FC = () => {
-  const { cars } = useCars();
-  const { config, formatPrice } = useSiteConfig();
+  const { cars, isLoading: carsLoading } = useCars();
+  const { config, formatPrice, isLoading: configLoading } = useSiteConfig();
   const heroRef = useRef(null);
   const textRef = useRef(null);
 
   useEffect(() => {
-    if (typeof gsap !== 'undefined') {
+    if (!carsLoading && !configLoading && typeof gsap !== 'undefined') {
       gsap.fromTo(textRef.current, 
         { opacity: 0, y: 30 },
         { opacity: 1, y: 0, duration: 1, delay: 0.5, ease: "power4.out" }
@@ -40,7 +41,7 @@ const Home: React.FC = () => {
         );
       });
     }
-  }, []);
+  }, [carsLoading, configLoading]);
 
   const newArrivals = useMemo(() => {
     return cars
@@ -55,26 +56,47 @@ const Home: React.FC = () => {
 
   const deal = config.dealOfTheWeek;
 
-  const homeSchema = {
-    "@context": "https://schema.org",
-    "@type": "CarDealer",
-    "name": config.siteName,
-    "description": config.heroSubtitle,
-    "url": "https://autosphere.com",
-    "telephone": config.contactPage.phone,
-    "address": {
-      "@type": "PostalAddress",
-      "streetAddress": config.contactPage.address,
-      "addressLocality": "Geneva",
-      "addressCountry": "CH"
+  if (carsLoading || configLoading) return <LoadingScreen />;
+
+  const homeSchema = [
+    {
+      "@context": "https://schema.org",
+      "@type": "CarDealer",
+      "name": config.siteName,
+      "description": config.heroSubtitle,
+      "url": window.location.origin,
+      "logo": config.seo.ogImage,
+      "telephone": config.contactPage.phone,
+      "email": config.contactPage.email,
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": config.contactPage.address,
+        "addressLocality": "Geneva",
+        "postalCode": "1204",
+        "addressCountry": "CH"
+      },
+      "sameAs": Object.values(config.socialLinks).filter(link => !!link)
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": config.siteName,
+      "url": window.location.origin,
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": `${window.location.origin}/#/inventory?q={search_term_string}`,
+        "query-input": "required name=search_term_string"
+      }
     }
-  };
+  ];
 
   return (
     <div className="bg-black text-white">
       <SEO 
-        title="Luxury Car Marketplace | Elegance in Motion" 
-        description={config.heroSubtitle} 
+        title={config.seo.metaTitle} 
+        description={config.seo.metaDescription} 
+        keywords={config.seo.keywords}
+        ogImage={config.seo.ogImage}
         schema={homeSchema}
       />
       
@@ -85,7 +107,7 @@ const Home: React.FC = () => {
         </div>
         
         <div ref={textRef} className="relative z-10 text-center max-w-4xl">
-          <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 mb-4 block">Redefining Performance</span>
+          <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 mb-4 block">Elite Automotive Curation</span>
           <h1 className="text-6xl md:text-9xl font-bold mb-6 gradient-text leading-tight tracking-tighter">
             {config.heroTitle}
           </h1>
@@ -106,17 +128,19 @@ const Home: React.FC = () => {
       {/* Brand Heritage */}
       <section className="py-32 bg-zinc-950 border-y border-white/5 overflow-hidden">
         <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-          <div className="reveal">
-            <span className="text-xs uppercase tracking-[0.4em] text-zinc-500 mb-4 block">The Genesis</span>
-            <h2 className="text-4xl md:text-6xl font-bold mb-8 uppercase tracking-tighter leading-tight">{config.homePage.heritageTitle}</h2>
+          <article className="reveal">
+            <header>
+              <span className="text-xs uppercase tracking-[0.4em] text-zinc-500 mb-4 block">Geneva Automotive Heritage</span>
+              <h2 className="text-4xl md:text-6xl font-bold mb-8 uppercase tracking-tighter leading-tight">{config.homePage.heritageTitle}</h2>
+            </header>
             <div className="space-y-8">
               <p className="text-zinc-400 text-lg leading-relaxed border-l-2 border-white/10 pl-8">
                 {config.homePage.heritageText}
               </p>
             </div>
-          </div>
+          </article>
           <div className="reveal rounded-[3rem] overflow-hidden glass aspect-square group">
-             <img src="https://images.unsplash.com/photo-1542281286-9e0a16bb7366?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" alt="Vintage Luxury Car Showroom Geneva" loading="lazy" />
+             <img src="https://images.unsplash.com/photo-1542281286-9e0a16bb7366?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover opacity-60 grayscale group-hover:grayscale-0 group-hover:scale-105 transition-all duration-1000" alt="Exclusive Luxury Car Showroom in Geneva" loading="lazy" />
           </div>
         </div>
       </section>
@@ -125,11 +149,11 @@ const Home: React.FC = () => {
       {Object.values(config.customSections).map((sec: CustomSectionType, idx: number) => sec.isActive && (
         <section key={idx} className={`py-32 overflow-hidden ${idx % 2 === 0 ? 'bg-black' : 'bg-zinc-950'}`}>
           <div className={`max-w-7xl mx-auto px-6 grid grid-cols-1 lg:grid-cols-2 gap-16 items-center ${sec.layout === 'right' ? 'lg:flex-row-reverse' : ''}`}>
-             <div className={`reveal ${sec.layout === 'right' ? 'lg:order-2' : 'lg:order-1'}`}>
+             <article className={`reveal ${sec.layout === 'right' ? 'lg:order-2' : 'lg:order-1'}`}>
                 <span className="text-xs uppercase tracking-[0.4em] text-zinc-500 mb-4 block">{sec.subtitle}</span>
                 <h2 className="text-4xl md:text-6xl font-bold mb-8 uppercase tracking-tighter leading-tight">{sec.title}</h2>
                 <p className="text-zinc-400 text-lg leading-relaxed">{sec.content}</p>
-             </div>
+             </article>
              <div className={`reveal rounded-[3rem] overflow-hidden glass aspect-[4/3] group ${sec.layout === 'right' ? 'lg:order-1' : 'lg:order-2'}`}>
                 <img src={sec.imageUrl} className="w-full h-full object-cover opacity-70 group-hover:scale-110 transition-transform duration-1000" alt={sec.title} loading="lazy" />
              </div>
@@ -143,12 +167,12 @@ const Home: React.FC = () => {
           <div className="max-w-7xl mx-auto px-6 reveal">
              <div className="glass rounded-[3rem] overflow-hidden flex flex-col lg:flex-row items-stretch border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.05)]">
                 <div className="w-full lg:w-3/5 relative min-h-[400px]">
-                   <img src={deal.image} className="absolute inset-0 w-full h-full object-cover" alt={`Exclusive Deal: ${deal.make} ${deal.model}`} loading="lazy" />
+                   <img src={deal.image} className="absolute inset-0 w-full h-full object-cover" alt={`Featured Deal: ${deal.make} ${deal.model} Supercar`} loading="lazy" />
                    <div className="absolute inset-0 bg-gradient-to-r from-black/60 to-transparent lg:hidden" />
                    
                    <div className="absolute bottom-6 left-6 right-6 md:right-auto md:bottom-10 md:left-10 pointer-events-none flex">
                       <div className="bg-white/10 backdrop-blur-xl px-4 py-3 rounded-2xl md:rounded-full text-[10px] md:text-xs font-bold uppercase tracking-widest border border-white/20 flex flex-wrap items-center justify-center gap-x-2 gap-y-1 text-center max-w-full shadow-2xl">
-                         <span className="text-white/60 whitespace-nowrap">Limited Edition</span>
+                         <span className="text-white/60 whitespace-nowrap">Exclusive Collection</span>
                          <span className="hidden md:inline text-white/20">•</span>
                          <span className="text-white whitespace-normal break-all md:break-normal">
                             {formatPrice(deal.price)}
@@ -157,11 +181,11 @@ const Home: React.FC = () => {
                    </div>
                 </div>
                 <div className="w-full lg:w-2/5 p-10 md:p-16 flex flex-col justify-center space-y-10 bg-zinc-950/50">
-                   <div>
-                      <span className="text-xs uppercase tracking-[0.4em] text-zinc-500 mb-4 block">Time-Limited Acquisition</span>
+                   <header>
+                      <span className="text-xs uppercase tracking-[0.4em] text-zinc-500 mb-4 block">Investment Opportunity</span>
                       <h2 className="text-4xl md:text-5xl font-bold uppercase tracking-tighter mb-4 leading-none">Deal of <br/> the Week</h2>
                       <p className="text-zinc-400 text-lg">{deal.description || `Secure the magnificent ${deal.make} ${deal.model} with exclusive concierge benefits.`}</p>
-                   </div>
+                   </header>
                    <div className="py-4 border-y border-white/5">
                       <CountdownTimer endTime={deal.endTime} />
                    </div>
@@ -183,8 +207,8 @@ const Home: React.FC = () => {
       <section className="py-32 bg-zinc-950">
         <div className="max-w-7xl mx-auto px-6">
           <div className="text-center mb-20 reveal">
-            <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 block mb-4">Elite Voices</span>
-            <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tighter">Collector Reviews</h2>
+            <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 block mb-4">Elite Collector Feedback</span>
+            <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tighter">Verified Reviews</h2>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
             {config.testimonials.map((t, i) => (
@@ -194,10 +218,10 @@ const Home: React.FC = () => {
                 </div>
                 <div className="flex items-center gap-4 pt-8 border-t border-white/5">
                    <div className="w-12 h-12 rounded-full overflow-hidden bg-zinc-800 border border-white/10">
-                      <img src={t.avatar || `https://i.pravatar.cc/150?u=${t.id}`} className="w-full h-full object-cover" alt={t.name} />
+                      <img src={t.avatar || `https://i.pravatar.cc/150?u=${t.id}`} className="w-full h-full object-cover" alt={`${t.name} - ${t.role}`} />
                    </div>
                    <div>
-                      <h4 className="font-bold text-sm uppercase tracking-widest">{t.name}</h4>
+                      <h3 className="font-bold text-sm uppercase tracking-widest">{t.name}</h3>
                       <p className="text-[10px] text-zinc-600 uppercase font-bold tracking-widest">{t.role}</p>
                    </div>
                 </div>
@@ -211,11 +235,11 @@ const Home: React.FC = () => {
       <section className="py-32 px-6 md:px-12 bg-black">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-20 reveal gap-8">
-            <div className="space-y-4">
-              <span className="text-xs text-zinc-500 uppercase tracking-[0.5em]">Private Stock</span>
-              <h2 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter">New Arrivals</h2>
-            </div>
-            <Link to="/inventory" className="text-sm font-bold border-b-2 border-white/20 pb-2 hover:text-zinc-400 hover:border-white transition-all uppercase tracking-widest">View Full Collection</Link>
+            <header className="space-y-4">
+              <span className="text-xs text-zinc-500 uppercase tracking-[0.5em]">Curated Stock</span>
+              <h2 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter">Luxury New Arrivals</h2>
+            </header>
+            <Link to="/inventory" className="text-sm font-bold border-b-2 border-white/20 pb-2 hover:text-zinc-400 hover:border-white transition-all uppercase tracking-widest">Full Collection Registry</Link>
           </div>
           <div className="reveal">
             <FeaturedGrid cars={newArrivals} />
@@ -226,13 +250,17 @@ const Home: React.FC = () => {
       {/* Services */}
       <section className="py-32 bg-zinc-950 border-y border-white/5">
         <div className="max-w-7xl mx-auto px-6">
-           <div className="max-w-3xl mb-24 reveal">
-              <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 mb-4 block">Excellence Guaranteed</span>
+           <header className="max-w-3xl mb-24 reveal">
+              <span className="text-xs uppercase tracking-[0.5em] text-zinc-500 mb-4 block">Bespoke Concierge</span>
               <h2 className="text-4xl md:text-6xl font-bold uppercase tracking-tighter">{config.homePage.servicesTitle}</h2>
-           </div>
+           </header>
            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
               {config.homePage.services.map((service, idx) => (
-                <ServiceCard key={idx} title={service.title} desc={service.desc} />
+                <article key={idx} className="glass p-10 rounded-[3rem] hover:border-white/40 hover:bg-white/5 transition-all reveal group cursor-default">
+                  <div className="w-10 h-1 bg-white/10 mb-8 group-hover:w-full group-hover:bg-white transition-all duration-500" />
+                  <h3 className="text-xl font-bold mb-4 uppercase tracking-widest leading-tight">{service.title}</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed">{service.desc}</p>
+                </article>
               ))}
            </div>
         </div>
@@ -240,13 +268,5 @@ const Home: React.FC = () => {
     </div>
   );
 };
-
-const ServiceCard = ({ title, desc }: any) => (
-  <div className="glass p-10 rounded-[3rem] hover:border-white/40 hover:bg-white/5 transition-all reveal group cursor-default">
-    <div className="w-10 h-1 bg-white/10 mb-8 group-hover:w-full group-hover:bg-white transition-all duration-500" />
-    <h3 className="text-xl font-bold mb-4 uppercase tracking-widest leading-tight">{title}</h3>
-    <p className="text-zinc-500 text-sm leading-relaxed">{desc}</p>
-  </div>
-);
 
 export default Home;

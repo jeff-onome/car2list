@@ -6,22 +6,29 @@ import { useCars } from '../../context/CarContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { dbService } from '../../services/database';
 import { Rental } from '../../types';
+import LoadingScreen from '../../components/LoadingScreen';
 
 const DealerDashboard: React.FC = () => {
   const { user } = useAuth();
-  const { cars } = useCars();
-  const { formatPrice } = useSiteConfig();
+  const { cars, isLoading: carsLoading } = useCars();
+  const { formatPrice, isLoading: configLoading } = useSiteConfig();
   const [rentals, setRentals] = useState<Rental[]>([]);
+  const [rentalsLoading, setRentalsLoading] = useState(true);
   
   const dealerCars = cars.filter(c => c.dealerId === user?.id);
   const totalValuation = dealerCars.reduce((acc, c) => acc + c.price, 0);
 
   useEffect(() => {
     if (user?.id) {
-      const unsub = dbService.subscribeToDealerRentals(user.id, setRentals);
+      const unsub = dbService.subscribeToDealerRentals(user.id, (data) => {
+        setRentals(data);
+        setRentalsLoading(false);
+      });
       return () => unsub();
     }
   }, [user]);
+
+  if (carsLoading || configLoading || rentalsLoading) return <LoadingScreen />;
 
   return (
     <div className="min-h-screen bg-black pt-24 pb-20 px-6">
@@ -55,7 +62,7 @@ const DealerDashboard: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5">
-                {rentals.map(r => (
+                {rentals.length > 0 ? rentals.map(r => (
                   <tr key={r.id} className="text-sm hover:bg-white/[0.01] transition-colors">
                     <td className="px-8 py-5 font-bold uppercase text-white">{r.carName}</td>
                     <td className="px-8 py-5">
@@ -69,7 +76,11 @@ const DealerDashboard: React.FC = () => {
                        }`}>{r.status}</span>
                     </td>
                   </tr>
-                ))}
+                )) : (
+                  <tr>
+                    <td colSpan={4} className="p-20 text-center text-zinc-600 uppercase text-[10px] italic">No experiences logged.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

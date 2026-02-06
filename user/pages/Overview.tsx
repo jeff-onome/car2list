@@ -6,22 +6,34 @@ import { useUserData } from '../../context/UserDataContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { dbService } from '../../services/database';
 import { Link } from 'react-router-dom';
+import LoadingScreen from '../../components/LoadingScreen';
 
 const Overview: React.FC = () => {
   const { user } = useAuth();
-  const { favorites } = useCars();
+  const { favorites, isLoading: carsLoading } = useCars();
   const { userData } = useUserData();
-  const { formatPrice } = useSiteConfig();
+  const { formatPrice, isLoading: configLoading } = useSiteConfig();
 
   const [purchases, setPurchases] = useState<any[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     if (user?.id) {
-      const unsubPurchases = dbService.subscribeToPurchases(user.id, setPurchases);
-      const unsubBookings = dbService.subscribeToBookings(user.id, setBookings);
-      setLoading(false);
+      let purchaseUnsub: any;
+      let bookingUnsub: any;
+
+      const unsubPurchases = dbService.subscribeToPurchases(user.id, (data) => {
+        setPurchases(data);
+        // We only set dataLoading false once both streams have likely emitted or at least one has if the other is empty
+        setDataLoading(false);
+      });
+
+      const unsubBookings = dbService.subscribeToBookings(user.id, (data) => {
+        setBookings(data);
+        setDataLoading(false);
+      });
+
       return () => {
         unsubPurchases();
         unsubBookings();
@@ -29,7 +41,9 @@ const Overview: React.FC = () => {
     }
   }, [user]);
 
-  // Fixed: Metrics now use itemType and amount from the Payment interface
+  if (carsLoading || configLoading || dataLoading) return <LoadingScreen />;
+
+  // Metrics now use itemType and amount from the Payment interface
   const boughtCount = purchases.filter(p => p.itemType === 'Purchase').length;
   const rentedCount = purchases.filter(p => p.itemType === 'Rental').length;
   const totalSpend = purchases.reduce((acc, p) => acc + (p.amount || 0), 0);
@@ -108,7 +122,6 @@ const Overview: React.FC = () => {
                <Link to="/user/purchases" className="text-[9px] uppercase tracking-widest text-zinc-500 hover:text-white transition-colors">View All history</Link>
             </div>
             <div className="space-y-4">
-               {/* Fixed: Unified pulse sorting by createdAt (Payment) or date (Booking) */}
                {[...purchases, ...bookings].sort((a,b) => {
                  const dateA = new Date(a.createdAt || a.date).getTime();
                  const dateB = new Date(b.createdAt || b.date).getTime();
@@ -117,7 +130,6 @@ const Overview: React.FC = () => {
                  <div key={idx} className="glass p-5 md:p-6 rounded-2xl md:rounded-[2rem] border-white/5 flex flex-col sm:flex-row sm:items-center justify-between hover:bg-white/5 transition-all gap-4 group">
                     <div className="flex items-center gap-4">
                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-500 shrink-0 group-hover:text-white transition-colors">
-                          {/* Fixed: Use amount property to identify a payment */}
                           {item.amount ? (
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           ) : (
@@ -125,27 +137,21 @@ const Overview: React.FC = () => {
                           )}
                        </div>
                        <div className="overflow-hidden">
-                          {/* Fixed: Display itemDescription for payments or car for bookings */}
                           <p className="text-sm font-bold uppercase tracking-tight truncate">{item.itemDescription || item.car}</p>
                           <div className="flex items-center gap-2 mt-0.5">
                              <p className="text-[10px] text-zinc-500 uppercase tracking-widest">{item.amount ? 'Payment' : 'Test Drive'}</p>
                              <span className="w-1 h-1 rounded-full bg-zinc-700" />
-                             {/* Fixed: Handle both createdAt and date properties for the timestamp */}
                              <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter sm:hidden">{new Date(item.createdAt || item.date).toLocaleDateString()}</p>
                           </div>
                        </div>
                     </div>
-                    {/* Fixed: Handle date display for desktop view */}
                     <p className="text-[10px] font-mono text-zinc-600 uppercase tracking-tighter text-right hidden sm:block">{new Date(item.createdAt || item.date).toLocaleDateString()}</p>
                  </div>
                ))}
-               {purchases.length === 0 && bookings.length === 0 && !loading && (
+               {purchases.length === 0 && bookings.length === 0 && (
                  <div className="p-12 md:p-20 text-center glass rounded-[2rem] md:rounded-[3rem] border-white/5">
                     <p className="text-zinc-600 italic text-[10px] uppercase tracking-widest">No recent pulses identified.</p>
                  </div>
-               )}
-               {loading && (
-                 <div className="p-20 text-center animate-pulse uppercase tracking-[0.3em] text-zinc-600 text-[9px]">Analyzing telemetry...</div>
                )}
             </div>
             
@@ -203,15 +209,6 @@ const Overview: React.FC = () => {
                  </div>
                  <Link to="/user/profile" className="block pt-2 text-[9px] text-zinc-600 hover:text-white uppercase tracking-widest transition-colors font-bold text-center sm:text-left">Manage Account Profile</Link>
               </div>
-            </div>
-
-            <div className="glass p-6 md:p-8 rounded-2xl md:rounded-[3rem] border-white/5 space-y-4 bg-red-500/[0.02] shadow-xl">
-              <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500 flex items-center gap-2">
-                <svg className="w-3 h-3 text-red-500/50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" /></svg>
-                Security Pulse
-              </h4>
-              <p className="text-[9px] text-zinc-600 uppercase tracking-tighter leading-relaxed">Authentication key active. Registry shows no suspicious activity on this terminal.</p>
-              <Link to="/user/security" className="block text-[9px] text-white uppercase tracking-widest hover:underline font-bold">Rotate Access Key</Link>
             </div>
           </div>
         </div>

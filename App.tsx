@@ -47,6 +47,7 @@ import DealOfTheWeekAdmin from './superadmin/pages/DealOfTheWeek';
 import KYCReview from './superadmin/pages/KYCReview';
 import RentalManagement from './superadmin/pages/RentalManagement';
 import PaymentManagement from './superadmin/pages/PaymentManagement';
+import AddCarAdmin from './superadmin/pages/AddCar';
 
 // Common
 import Security from './common/pages/Security';
@@ -126,6 +127,7 @@ const App: React.FC = () => {
                           <Route path="cms" element={<SiteCMS />} />
                           <Route path="rentals" element={<RentalManagement />} />
                           <Route path="payments" element={<PaymentManagement />} />
+                          <Route path="add-car" element={<AddCarAdmin />} />
                           <Route path="*" element={<Navigate to="dashboard" replace />} />
                         </Routes>
                       </PortalLayout>

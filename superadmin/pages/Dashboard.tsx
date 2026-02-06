@@ -4,19 +4,24 @@ import { useCars } from '../../context/CarContext';
 import { dbService } from '../../services/database';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import { User, Rental } from '../../types';
+import { Link } from 'react-router-dom';
+import LoadingScreen from '../../components/LoadingScreen';
 
 const AdminDashboard: React.FC = () => {
-  const { cars } = useCars();
-  const { formatPrice, config } = useSiteConfig();
+  const { cars, isLoading: carsLoading } = useCars();
+  const { formatPrice, config, isLoading: configLoading } = useSiteConfig();
   const [users, setUsers] = useState<User[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
-  const pendingCount = cars.filter(c => c.status === 'pending').length;
+  const [dataLoading, setDataLoading] = useState(true);
 
   useEffect(() => {
     const unsubUsers = dbService.subscribeToUsers(setUsers);
     const unsubBookings = dbService.subscribeToAllBookings(setBookings);
-    const unsubRentals = dbService.subscribeToAllRentals(setRentals);
+    const unsubRentals = dbService.subscribeToAllRentals((data) => {
+       setRentals(data);
+       setDataLoading(false);
+    });
     return () => {
       unsubUsers();
       unsubBookings();
@@ -24,9 +29,11 @@ const AdminDashboard: React.FC = () => {
     };
   }, []);
 
+  if (carsLoading || configLoading || dataLoading) return <LoadingScreen />;
+
+  const pendingCount = cars.filter(c => c.status === 'pending').length;
   const totalVolume = cars.reduce((acc, c) => acc + c.price, 0);
   
-  // Unified activities list for the dashboard registry
   const combinedActivities = [
     ...bookings.map(b => ({ ...b, type: 'Test Drive', date: b.date, label: b.car })),
     ...rentals.map(r => ({ ...r, type: 'Rental', date: r.startDate, label: r.carName, bookingType: 'Rental' }))
@@ -35,7 +42,10 @@ const AdminDashboard: React.FC = () => {
   return (
     <div className="min-h-screen bg-black pt-24 pb-20 px-6 md:px-12">
       <div className="max-w-7xl mx-auto">
-        <h1 className="text-4xl font-bold uppercase tracking-tighter mb-12">Master Control</h1>
+        <div className="flex justify-between items-center mb-12">
+          <h1 className="text-4xl font-bold uppercase tracking-tighter">Master Control</h1>
+          <Link to="/admin/add-car" className="bg-white text-black px-10 py-3.5 rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-zinc-200 transition-all shadow-xl">Enroll Vehicle</Link>
+        </div>
         
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-12">
           <Stat label="Global Users" value={users.length.toLocaleString()} />
