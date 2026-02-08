@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { dbService } from '../../services/database';
 import { useSiteConfig } from '../../context/SiteConfigContext';
+import { useCars } from '../../context/CarContext';
 import { Rental } from '../../types';
 import LoadingScreen from '../../components/LoadingScreen';
 
@@ -11,6 +12,7 @@ const RentalManagement: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const { formatPrice } = useSiteConfig();
+  const { cars } = useCars();
 
   useEffect(() => {
     const unsub = dbService.subscribeToAllRentals((data) => {
@@ -37,6 +39,8 @@ const RentalManagement: React.FC = () => {
         <div className="space-y-4">
           {rentals.length > 0 ? rentals.map(r => {
             const isExpanded = expandedId === r.id;
+            const rentedCar = cars.find(c => c.id === r.carId);
+            
             return (
               <div 
                 key={r.id} 
@@ -45,8 +49,14 @@ const RentalManagement: React.FC = () => {
               >
                 <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
                   <div className="flex gap-4 sm:gap-6 items-center w-full sm:w-auto">
-                    <div className="w-12 h-12 rounded-full bg-zinc-900 flex items-center justify-center border border-white/5 shrink-0 text-zinc-500 shadow-xl">
-                       <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                    <div className="w-16 h-12 rounded-lg bg-zinc-900 overflow-hidden border border-white/5 shrink-0 shadow-xl">
+                       {rentedCar?.images?.[0] ? (
+                         <img src={rentedCar.images[0]} className="w-full h-full object-cover" alt={r.carName} />
+                       ) : (
+                         <div className="w-full h-full flex items-center justify-center text-zinc-500">
+                           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
+                         </div>
+                       )}
                     </div>
                     <div className="overflow-hidden flex-grow">
                        <h3 className="text-sm font-bold uppercase text-white tracking-tight truncate">{r.carName}</h3>

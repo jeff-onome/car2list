@@ -1,8 +1,10 @@
+
 import React, { useState } from 'react';
 import { useSiteConfig } from '../../context/SiteConfigContext';
 import Swal from 'https://esm.sh/sweetalert2@11';
 import { CurrencyConfig, Testimonial, CustomSection as CustomSectionType, FAQItem } from '../../types';
 import { storageService } from '../../services/storage';
+import { dbService } from '../../services/database';
 
 const SiteCMS: React.FC = () => {
   const { config, updateConfig } = useSiteConfig();
@@ -23,6 +25,54 @@ const SiteCMS: React.FC = () => {
         popup: 'glass rounded-[2rem] border border-white/10 shadow-2xl'
       }
     });
+  };
+
+  const handleForceClear = async () => {
+    const firstConfirm = await Swal.fire({
+      title: 'DANGER ZONE: FORCE CLEAR',
+      text: 'This action will reset ALL monetary values (Cars, Rentals, Payments) across the entire platform to zero. This is irreversible.',
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'I UNDERSTAND, PROCEED',
+      confirmButtonColor: '#ef4444',
+      background: '#0a0a0a',
+      color: '#fff'
+    });
+
+    if (firstConfirm.isConfirmed) {
+      const secondConfirm = await Swal.fire({
+        title: 'FINAL VERIFICATION',
+        text: 'Type "CONFIRM RESET" to execute the global financial wipe.',
+        input: 'text',
+        inputPlaceholder: 'CONFIRM RESET',
+        showCancelButton: true,
+        confirmButtonText: 'EXECUTE WIPE',
+        confirmButtonColor: '#ff0000',
+        background: '#0a0a0a',
+        color: '#fff',
+        preConfirm: (value) => {
+          if (value !== 'CONFIRM RESET') {
+            Swal.showValidationMessage('Verification text must match exactly.');
+          }
+          return value === 'CONFIRM RESET';
+        }
+      });
+
+      if (secondConfirm.isConfirmed) {
+        try {
+          await dbService.forceClearMonetaryValues();
+          Swal.fire({
+            title: 'Registry Cleaned',
+            text: 'All financial telemetry has been reset to zero.',
+            icon: 'success',
+            background: '#0a0a0a',
+            color: '#fff'
+          });
+        } catch (error) {
+          Swal.fire('Operation Failed', 'Registry synchronization error.', 'error');
+        }
+      }
+    }
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, path: string) => {
@@ -89,7 +139,8 @@ const SiteCMS: React.FC = () => {
     'About', 
     'FAQ', 
     'Financing', 
-    'Policies'
+    'Policies',
+    'System Tools'
   ];
 
   return (
@@ -143,7 +194,6 @@ const SiteCMS: React.FC = () => {
             <CMSSection title="Global Market Currencies">
               <div className="space-y-8">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {/* Fixed: Explicitly cast Object.values to CurrencyConfig[] to resolve 'unknown' type errors */}
                   {(Object.values(localConfig.currencies) as CurrencyConfig[]).map((curr) => (
                     <div key={curr.code} className={`p-8 rounded-[2.5rem] border transition-all duration-500 ${localConfig.activeCurrency === curr.code ? 'bg-white/5 border-white/20 ring-1 ring-white/10' : 'border-white/5 bg-zinc-950'}`}>
                       <div className="flex justify-between items-start mb-6">
@@ -194,7 +244,6 @@ const SiteCMS: React.FC = () => {
           {activeTab === 'Custom Sections' && (
             <CMSSection title="Additional Landing Segments">
               <div className="space-y-12">
-                {/* Fixed: Explicitly cast Object.entries to [string, CustomSectionType][] to resolve 'unknown' type errors */}
                 {(Object.entries(localConfig.customSections) as [string, CustomSectionType][]).map(([key, sec]) => (
                   <div key={key} className="p-10 border border-white/5 rounded-[3rem] bg-zinc-950 space-y-8 relative group shadow-xl">
                     <div className="flex justify-between items-center border-b border-white/5 pb-6">
@@ -443,6 +492,29 @@ const SiteCMS: React.FC = () => {
             <CMSSection title="Regulatory Framework">
               <CMSArea label="Privacy Governance Protocol" value={localConfig.privacyPolicy} onChange={(v:string) => setLocalConfig({...localConfig, privacyPolicy: v})} />
               <CMSArea label="Operational Terms of Service" value={localConfig.termsOfService} onChange={(v:string) => setLocalConfig({...localConfig, termsOfService: v})} />
+            </CMSSection>
+          )}
+
+          {activeTab === 'System Tools' && (
+            <CMSSection title="System Integrity Utilities">
+               <div className="p-10 border border-red-500/20 rounded-[3rem] bg-red-500/[0.02] space-y-8 shadow-xl">
+                  <div className="space-y-2">
+                     <h4 className="text-xl font-bold uppercase tracking-tight text-red-500">Financial Danger Zone</h4>
+                     <p className="text-sm text-zinc-500 leading-relaxed">
+                        The Force Clear utility resets all global monetary parameters to zero. This includes car inventory valuations, rental total calculations, and payment registry entries. This operation is designed for staging environment cleanup and cannot be undone.
+                     </p>
+                  </div>
+                  
+                  <div className="pt-4">
+                     <button 
+                       onClick={handleForceClear}
+                       className="bg-red-500 text-white px-10 py-4 rounded-full font-bold uppercase tracking-widest text-[10px] hover:bg-red-600 transition-all shadow-2xl flex items-center gap-3"
+                     >
+                       <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                       Execute Force Clear
+                     </button>
+                  </div>
+               </div>
             </CMSSection>
           )}
         </div>

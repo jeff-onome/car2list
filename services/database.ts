@@ -198,5 +198,41 @@ export const dbService = {
   },
   async updateBookingVisibility(bid: string, hide: boolean) {
     await update(ref(db, `bookings/all/${bid}`), { hideFromDealer: hide });
+  },
+
+  // --- System Utility ---
+  async forceClearMonetaryValues() {
+    const updates: Record<string, any> = {};
+
+    // 1. Reset all car prices
+    const carsSnap = await get(ref(db, 'cars'));
+    if (carsSnap.exists()) {
+      const cars = carsSnap.val();
+      Object.keys(cars).forEach(id => {
+        updates[`cars/${id}/price`] = 0;
+      });
+    }
+
+    // 2. Reset all rental total prices
+    const rentalsSnap = await get(ref(db, 'rentals'));
+    if (rentalsSnap.exists()) {
+      const rentals = rentalsSnap.val();
+      Object.keys(rentals).forEach(id => {
+        updates[`rentals/${id}/totalPrice`] = 0;
+      });
+    }
+
+    // 3. Reset all payment amounts
+    const paymentsSnap = await get(ref(db, 'payments'));
+    if (paymentsSnap.exists()) {
+      const payments = paymentsSnap.val();
+      Object.keys(payments).forEach(id => {
+        updates[`payments/${id}/amount`] = 0;
+      });
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await update(ref(db), updates);
+    }
   }
 };
