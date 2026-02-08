@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import { dbService } from '../../services/database';
 import { useSiteConfig } from '../../context/SiteConfigContext';
-import { Payment, PlatformFinancials } from '../../types';
+import { Payment, PlatformFinancials, CryptoWallet } from '../../types';
 import Swal from 'https://esm.sh/sweetalert2@11';
 
 const PaymentManagement: React.FC = () => {
@@ -10,6 +10,9 @@ const PaymentManagement: React.FC = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<'Registry' | 'Vault'>('Registry');
+  
+  // Local state for dynamic wallet management
+  const [wallets, setWallets] = useState<CryptoWallet[]>(config.financials.wallets || []);
 
   useEffect(() => {
     const unsub = dbService.subscribeToAllPayments((data) => {
@@ -18,6 +21,11 @@ const PaymentManagement: React.FC = () => {
     });
     return () => unsub();
   }, []);
+
+  // Synchronize local state with config changes
+  useEffect(() => {
+    setWallets(config.financials.wallets || []);
+  }, [config.financials.wallets]);
 
   const handleAction = async (pid: string, status: Payment['status'], uid: string) => {
     const confirm = await Swal.fire({
@@ -39,6 +47,20 @@ const PaymentManagement: React.FC = () => {
     }
   };
 
+  const addWallet = () => {
+    setWallets([...wallets, { label: '', address: '' }]);
+  };
+
+  const updateWallet = (index: number, field: keyof CryptoWallet, value: string) => {
+    const newWallets = [...wallets];
+    newWallets[index][field] = value;
+    setWallets(newWallets);
+  };
+
+  const removeWallet = (index: number) => {
+    setWallets(wallets.filter((_, i) => i !== index));
+  };
+
   const handleUpdateVault = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -47,9 +69,7 @@ const PaymentManagement: React.FC = () => {
       accountName: formData.get('accountName') as string,
       accountNumber: formData.get('accountNumber') as string,
       swiftCode: formData.get('swiftCode') as string,
-      btcWallet: formData.get('btcWallet') as string,
-      ethWallet: formData.get('ethWallet') as string,
-      usdtWallet: formData.get('usdtWallet') as string,
+      wallets: wallets.filter(w => w.label && w.address), // Filter out empty entries
     };
     await updateConfig({ financials: updated });
     Swal.fire('Vault Updated', 'Platform payment credentials synchronized.', 'success');
@@ -130,11 +150,47 @@ const PaymentManagement: React.FC = () => {
                 <VaultField label="SWIFT / BIC Code" name="swiftCode" val={config.financials.swiftCode} />
              </div>
              <div className="glass p-10 rounded-[3rem] border-white/5 space-y-6">
-                <h3 className="text-xl font-bold uppercase tracking-tighter border-b border-white/5 pb-4">Crypto Liquidity</h3>
-                <VaultField label="BTC Wallet" name="btcWallet" val={config.financials.btcWallet} />
-                <VaultField label="ETH Wallet" name="ethWallet" val={config.financials.ethWallet} />
-                <VaultField label="USDT (TRC20) Wallet" name="usdtWallet" val={config.financials.usdtWallet} />
-                <div className="pt-10">
+                <div className="flex justify-between items-center border-b border-white/5 pb-4">
+                  <h3 className="text-xl font-bold uppercase tracking-tighter">Crypto Liquidity</h3>
+                  <button type="button" onClick={addWallet} className="bg-white/10 hover:bg-white/20 text-white px-4 py-1.5 rounded-full text-[9px] font-bold uppercase tracking-widest transition-all">Add Wallet</button>
+                </div>
+                
+                <div className="space-y-6 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
+                  {wallets.map((wallet, idx) => (
+                    <div key={idx} className="p-6 bg-zinc-900/50 rounded-2xl border border-white/5 space-y-4 relative group">
+                      <button 
+                        type="button" 
+                        onClick={() => removeWallet(idx)} 
+                        className="absolute top-4 right-4 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-red-500/10 rounded-full"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                      </button>
+                      <div className="space-y-2">
+                        <label className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 ml-4 font-bold">Network Name</label>
+                        <input 
+                          value={wallet.label} 
+                          onChange={(e) => updateWallet(idx, 'label', e.target.value)}
+                          placeholder="e.g. BTC Mainnet"
+                          className="w-full bg-black/40 border border-white/5 rounded-full px-5 py-3 text-xs text-white focus:outline-none focus:ring-1 focus:ring-white/10" 
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-[8px] uppercase tracking-[0.2em] text-zinc-500 ml-4 font-bold">Wallet Address</label>
+                        <input 
+                          value={wallet.address} 
+                          onChange={(e) => updateWallet(idx, 'address', e.target.value)}
+                          placeholder="0x..."
+                          className="w-full bg-black/40 border border-white/5 rounded-full px-5 py-3 text-xs font-mono text-zinc-400 focus:outline-none focus:ring-1 focus:ring-white/10" 
+                        />
+                      </div>
+                    </div>
+                  ))}
+                  {wallets.length === 0 && (
+                    <p className="text-center text-zinc-600 uppercase text-[9px] py-10 italic">No wallets configured.</p>
+                  )}
+                </div>
+
+                <div className="pt-6">
                    <button type="submit" className="w-full bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 transition-all shadow-xl">Synchronize Financial Vault</button>
                 </div>
              </div>

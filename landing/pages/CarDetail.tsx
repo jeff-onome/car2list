@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
@@ -78,7 +79,7 @@ const CarDetail: React.FC = () => {
             <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.75rem; letter-spacing: 0.1em;">Choose Channel</label>
             <select id="pay-method" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;">
               <option value="Bank Transfer">Bank Wire (Global)</option>
-              <option value="Crypto">Cryptocurrency (BTC/ETH/USDT)</option>
+              <option value="Crypto">Cryptocurrency (Dynamic Wallets)</option>
               <option value="Card">Credit/Debit Card (Stripe)</option>
             </select>
           </div>
@@ -107,11 +108,16 @@ const CarDetail: React.FC = () => {
               SWIFT: ${config.financials.swiftCode}
             `;
           } else if (methodSelect.value === 'Crypto') {
+            const walletList = config.financials.wallets?.map(w => `
+              <div style="margin-bottom: 8px;">
+                <p style="color: #fff; font-weight: bold; margin: 0; font-size: 10px;">${w.label}:</p>
+                <p style="font-family: monospace; font-size: 9px; word-break: break-all; margin: 0; color: #71717a;">${w.address}</p>
+              </div>
+            `).join('') || '<p style="color: #ef4444;">No crypto wallets configured.</p>';
+
             infoDiv.innerHTML = `
-              <p style="color: #fff; font-weight: bold; margin-bottom: 5px;">Wallet Addresses:</p>
-              BTC: ${config.financials.btcWallet}<br>
-              ETH: ${config.financials.ethWallet}<br>
-              USDT (TRC20): ${config.financials.usdtWallet}
+              <p style="color: #fff; font-weight: bold; margin-bottom: 10px;">Authorized Receiving Wallets:</p>
+              ${walletList}
             `;
           } else {
             infoDiv.innerHTML = `
@@ -248,8 +254,9 @@ const CarDetail: React.FC = () => {
         ogType="product"
         schema={carSchema}
       />
-      <div className="grid grid-cols-1 lg:grid-cols-2">
-        <section className="relative bg-zinc-900 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] flex flex-col" aria-label="Vehicle Imagery">
+      <div className="grid grid-cols-1 lg:grid-cols-2 w-full">
+        {/* Responsive Image Container */}
+        <section className="relative bg-zinc-900 lg:sticky lg:top-16 lg:h-[calc(100vh-64px)] flex flex-col w-full overflow-hidden" aria-label="Vehicle Imagery">
           {/* Back Navigation Button */}
           <button 
             onClick={() => navigate(-1)} 
@@ -261,15 +268,24 @@ const CarDetail: React.FC = () => {
             </svg>
           </button>
 
-          <img src={images[activeImageIndex]} className="flex-grow object-cover" alt={`${car.make} ${car.model} Exterior View`} />
+          {/* Consistent Aspect Ratio for Main Image */}
+          <div className="flex-grow w-full relative aspect-video lg:aspect-auto">
+            <img 
+              src={images[activeImageIndex]} 
+              className="absolute inset-0 w-full h-full object-cover" 
+              alt={`${car.make} ${car.model} Exterior View`} 
+            />
+          </div>
+
+          {/* Thumbnail Gallery */}
           {images.length > 1 && (
-            <div className="p-4 bg-black/40 backdrop-blur-md overflow-x-auto no-scrollbar flex gap-3">
+            <div className="p-4 bg-black/40 backdrop-blur-md overflow-x-auto no-scrollbar flex gap-3 shrink-0">
               {images.map((img, idx) => (
                 <button 
                   key={idx} 
                   onClick={() => setActiveImageIndex(idx)} 
                   aria-label={`View Image ${idx + 1}`}
-                  className={`w-20 aspect-video border-2 rounded transition-all ${activeImageIndex === idx ? 'border-white scale-105' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                  className={`w-20 aspect-video border-2 rounded transition-all shrink-0 ${activeImageIndex === idx ? 'border-white scale-105 shadow-lg' : 'border-transparent opacity-60 hover:opacity-100'}`}
                 >
                   <img src={img} className="w-full h-full object-cover" alt="" />
                 </button>
@@ -277,21 +293,29 @@ const CarDetail: React.FC = () => {
             </div>
           )}
         </section>
-        <article className="p-8 md:p-16 space-y-12">
+
+        {/* Content Section */}
+        <article className="p-8 md:p-16 space-y-12 w-full">
           <header>
-            <div className="flex gap-2 mb-4">
+            <div className="flex flex-wrap gap-2 mb-4">
               {car.categories.map(c => <span key={c} className="bg-white/10 px-3 py-1 rounded-full text-[8px] uppercase font-bold">{c}</span>)}
             </div>
-            <h1 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter leading-none">{car.make} {car.model}</h1>
+            <h1 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter leading-none break-words">{car.make} {car.model}</h1>
             <p className="text-3xl font-light text-zinc-300 mt-4">{formatPrice(car.price)} {isRental && '/ day'}</p>
           </header>
+          
           <section>
             <h2 className="sr-only">Vehicle Description</h2>
             <p className="text-zinc-400 text-lg leading-relaxed">{car.description}</p>
           </section>
+
           <section className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-8 border-t border-white/10" aria-label="Technical Specifications">
-            <Spec label="Engine Power" val={`${car.hp} HP`} /><Spec label="0-100 km/h" val={car.acceleration} /><Spec label="Fuel Source" val={car.fuel} /><Spec label="Total Mileage" val={`${car.mileage} MI`} />
+            <Spec label="Engine Power" val={`${car.hp} HP`} />
+            <Spec label="0-100 km/h" val={car.acceleration} />
+            <Spec label="Fuel Source" val={car.fuel} />
+            <Spec label="Total Mileage" val={`${car.mileage} MI`} />
           </section>
+
           <div className="pt-8 flex flex-col sm:flex-row gap-4">
             <button onClick={() => isRental ? openBookingModal('Rental') : handlePaymentPortal('Purchase', car.price, `Full acquisition of ${car.make} ${car.model}`)} className="flex-grow bg-white text-black py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 shadow-2xl transition-all">
               {isRental ? 'Initialize Rental' : 'Acquire Masterpiece'}
@@ -305,9 +329,9 @@ const CarDetail: React.FC = () => {
 };
 
 const Spec = ({ label, val }: any) => (
-  <div>
+  <div className="overflow-hidden">
     <h3 className="text-[9px] uppercase tracking-widest text-zinc-500 mb-1 font-bold">{label}</h3>
-    <p className="text-lg font-bold">{val}</p>
+    <p className="text-lg font-bold truncate">{val}</p>
   </div>
 );
 

@@ -79,14 +79,17 @@ export interface Payment {
   itemDescription: string;
 }
 
+export interface CryptoWallet {
+  label: string;
+  address: string;
+}
+
 export interface PlatformFinancials {
   bankName: string;
   accountName: string;
   accountNumber: string;
   swiftCode: string;
-  btcWallet: string;
-  ethWallet: string;
-  usdtWallet: string;
+  wallets: CryptoWallet[];
 }
 
 export interface Testimonial {

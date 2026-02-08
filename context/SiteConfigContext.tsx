@@ -38,9 +38,11 @@ export const SiteConfigProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       accountName: 'AutoSphere Curation Group',
       accountNumber: 'CH76 0000 0000 1234 5678 9',
       swiftCode: 'SWISCHZZ',
-      btcWallet: '1AutoSphereBitcoinWalletAddressHkd93',
-      ethWallet: '0xAutoSphereEthereumWalletAddressK382',
-      usdtWallet: 'TAutoSphereUSDTTRC20WalletAddressJ82'
+      wallets: [
+        { label: 'BTC', address: '1AutoSphereBitcoinWalletAddressHkd93' },
+        { label: 'ETH', address: '0xAutoSphereEthereumWalletAddressK382' },
+        { label: 'USDT (TRC20)', address: 'TAutoSphereUSDTTRC20WalletAddressJ82' }
+      ]
     },
     liveChatScript: '',
     dealOfTheWeek: {
