@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -56,6 +57,13 @@ const Login: React.FC = () => {
         setIsLoggingIn(false);
         return;
       }
+
+      // LOG: Security Event
+      await dbService.logSecurityEvent(foundUser.id, {
+        event: 'Portal Authentication Success',
+        device: navigator.userAgent.split(') ')[0].split(' (')[1] || 'Web Browser',
+        status: 'Success'
+      });
 
       // SUCCESS: Initialize authenticated session
       login(foundUser.role, foundUser);

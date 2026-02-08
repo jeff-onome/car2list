@@ -221,7 +221,7 @@ const ThreeCarViewer: React.FC<ThreeCarViewerProps> = ({ color = '#ffffff', hots
       <div className="absolute bottom-6 left-6 pointer-events-none">
          <div className="flex items-center gap-2">
             <div className="w-2 h-2 rounded-full bg-white animate-pulse" />
-            <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Interactive Nodes Enabled</span>
+            <span className="text-[9px] text-zinc-500 uppercase tracking-widest font-bold">Activities Fully Functional</span>
          </div>
       </div>
     </div>

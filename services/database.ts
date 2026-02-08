@@ -1,6 +1,7 @@
+
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, get, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { Car, SiteConfig, User, Rental, Payment } from "../types";
+import { Car, SiteConfig, User, Rental, Payment, SecurityLog } from "../types";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7Q4VwibeVMWwKH9mJw6YZqfRc8RfaZLU",
@@ -49,8 +50,28 @@ export const dbService = {
       else callback([]);
     });
   },
+  subscribeToUser(uid: string, callback: (user: User | null) => void) {
+    return onValue(ref(db, `users/${uid}`), (snap) => {
+      if (snap.exists()) callback({ ...snap.val(), id: snap.key });
+      else callback(null);
+    });
+  },
   async saveUser(uid: string, user: User) { await set(ref(db, `users/${uid}`), user); },
   async updateUser(uid: string, updates: Partial<User>) { await update(ref(db, `users/${uid}`), updates); },
+
+  // --- Security Logs ---
+  async logSecurityEvent(uid: string, log: Omit<SecurityLog, 'id' | 'timestamp'>) {
+    const newRef = push(ref(db, `users/${uid}/securityLogs`));
+    await set(newRef, { ...log, id: newRef.key, timestamp: new Date().toISOString() });
+  },
+  subscribeToSecurityLogs(uid: string, callback: (logs: SecurityLog[]) => void) {
+    return onValue(ref(db, `users/${uid}/securityLogs`), (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        callback(Object.keys(data).map(k => ({ ...data[k] })).reverse().slice(0, 10));
+      } else callback([]);
+    });
+  },
 
   // --- Configuration ---
   subscribeToConfig(callback: (config: SiteConfig) => void) {

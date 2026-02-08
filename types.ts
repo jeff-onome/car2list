@@ -1,6 +1,21 @@
 
 export type UserRole = 'USER' | 'DEALER' | 'ADMIN';
 
+export interface SecurityLog {
+  id: string;
+  event: string;
+  timestamp: string;
+  ip?: string;
+  device?: string;
+  status: 'Success' | 'Failure' | 'Warning';
+}
+
+export interface SecuritySettings {
+  twoFactorEnabled: boolean;
+  loginAlerts: boolean;
+  sensitiveActionNotifications: boolean;
+}
+
 export interface User {
   id: string;
   name: string;
@@ -19,6 +34,7 @@ export interface User {
     selfie: string;
     submittedAt: string;
   };
+  securitySettings?: SecuritySettings;
 }
 
 export interface Car {
