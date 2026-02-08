@@ -44,6 +44,7 @@ export interface Car {
   status: 'pending' | 'approved' | 'rejected' | 'archived';
   archivedBy?: 'ADMIN' | 'DEALER';
   moderationReason?: string;
+  isSuspended?: boolean;
 }
 
 export interface Rental {

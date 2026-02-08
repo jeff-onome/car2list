@@ -1,3 +1,4 @@
+
 import React, { useEffect, useRef, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
@@ -71,13 +72,13 @@ const Home: React.FC = () => {
 
   const newArrivals = useMemo(() => {
     return cars
-      .filter(c => c.status === 'approved')
+      .filter(c => c.status === 'approved' && !c.isSuspended)
       .sort((a, b) => {
         const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return dateB - dateA;
       })
-      .slice(0, 3); // Limited to top 3 arrivals as requested
+      .slice(0, 3);
   }, [cars]);
 
   const deal = config.dealOfTheWeek;

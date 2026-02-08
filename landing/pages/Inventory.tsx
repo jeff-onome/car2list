@@ -17,7 +17,7 @@ const Inventory: React.FC = () => {
 
   const filteredCars = useMemo(() => {
     let result = cars.filter(car => {
-      const isApproved = car.status === 'approved';
+      const isApproved = car.status === 'approved' && !car.isSuspended;
       const matchType = filter.type === 'All' || car.type === filter.type;
       const carCats = car.categories || [];
       const matchCategory = filter.category === 'All' || carCats.includes(filter.category);

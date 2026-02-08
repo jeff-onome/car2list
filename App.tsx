@@ -50,6 +50,7 @@ import RentalManagement from './superadmin/pages/RentalManagement';
 import RentalDetail from './superadmin/pages/RentalDetail';
 import PaymentManagement from './superadmin/pages/PaymentManagement';
 import AddCarAdmin from './superadmin/pages/AddCar';
+import AdminCarsList from './superadmin/pages/AdminCarsList';
 
 // Common
 import Security from './common/pages/Security';
@@ -132,6 +133,7 @@ const App: React.FC = () => {
                           <Route path="rentals/:id" element={<RentalDetail />} />
                           <Route path="payments" element={<PaymentManagement />} />
                           <Route path="add-car" element={<AddCarAdmin />} />
+                          <Route path="cars-list" element={<AdminCarsList />} />
                           <Route path="*" element={<Navigate to="dashboard" replace />} />
                         </Routes>
                       </PortalLayout>
