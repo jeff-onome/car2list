@@ -2,11 +2,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 const RegistrationSuccess: React.FC = () => {
   const [timeLeft, setTimeLeft] = useState(5);
   const navigate = useNavigate();
   const { user } = useAuth();
+  const { config } = useSiteConfig();
 
   useEffect(() => {
     if (timeLeft === 0) {
@@ -49,7 +51,7 @@ const RegistrationSuccess: React.FC = () => {
         <div className="space-y-4">
           <h1 className="text-3xl font-bold uppercase tracking-tighter gradient-text">Membership Confirmed</h1>
           <p className="text-zinc-500 text-sm leading-relaxed uppercase tracking-widest">
-            Welcome to the AutoSphere elite network, <span className="text-white">{user?.name}</span>. Your high-security portal is being initialized.
+            Welcome to the {config.siteName} elite network, <span className="text-white">{user?.name}</span>. Your high-security portal is being initialized.
           </p>
         </div>
 

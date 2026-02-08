@@ -3,12 +3,14 @@ import React, { useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dbService } from '../services/database';
+import { useSiteConfig } from '../context/SiteConfigContext';
 import Swal from 'https://esm.sh/sweetalert2@11';
 
 const Login: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const { login } = useAuth();
+  const { config, isLoading } = useSiteConfig();
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -24,13 +26,9 @@ const Login: React.FC = () => {
     setIsLoggingIn(true);
     
     try {
-      // Real-time fetch of all user records from the registry
       const users = await dbService.getUsers();
-      
-      // Strict case-insensitive lookup for the identity
       const foundUser = users.find(u => u.email.toLowerCase() === email.trim().toLowerCase());
 
-      // VALIDATION: Strict verification of email existence AND password matching
       if (!foundUser || foundUser.password !== password) {
         Swal.fire({
           title: 'Authentication Failed',
@@ -45,11 +43,10 @@ const Login: React.FC = () => {
         return;
       }
 
-      // CHECK: Verification of account standing
       if (foundUser.isSuspended) {
         Swal.fire({
           title: 'Account Restricted',
-          text: 'This identity has been temporarily suspended from the AutoSphere ecosystem.',
+          text: `This identity has been temporarily suspended from the ${config.siteName} ecosystem.`,
           icon: 'warning',
           background: '#0a0a0a',
           color: '#fff'
@@ -58,17 +55,14 @@ const Login: React.FC = () => {
         return;
       }
 
-      // LOG: Security Event
       await dbService.logSecurityEvent(foundUser.id, {
         event: 'Portal Authentication Success',
         device: navigator.userAgent.split(') ')[0].split(' (')[1] || 'Web Browser',
         status: 'Success'
       });
 
-      // SUCCESS: Initialize authenticated session
       login(foundUser.role, foundUser);
       
-      // Redirection logic based on context or role
       if (redirectPath) {
         navigate(redirectPath);
       } else {
@@ -96,7 +90,7 @@ const Login: React.FC = () => {
       <div className="max-w-md w-full space-y-8">
         <div className={`glass p-10 rounded-[2.5rem] border-white/5 shadow-2xl transition-all duration-500 ${isPaymentMode ? 'ring-2 ring-white/10 bg-white/[0.02]' : ''}`}>
           <div className="text-center mb-10">
-            <Link to="/" className="text-2xl font-bold tracking-tighter gradient-text uppercase block mb-4">AutoSphere</Link>
+            <Link to="/" className="text-2xl font-bold tracking-tighter gradient-text uppercase block mb-4">{isLoading ? 'Loading...' : config.siteName}</Link>
             
             {isPaymentMode ? (
               <div className="space-y-2 animate-in fade-in slide-in-from-top-4">
@@ -123,7 +117,7 @@ const Login: React.FC = () => {
                 value={email} 
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full bg-zinc-900 border border-white/5 rounded-full px-6 py-4 text-sm focus:outline-none focus:ring-1 focus:ring-white/20 text-white"
-                placeholder="portal@autosphere.com" 
+                placeholder="portal@identity.com" 
                 disabled={isLoggingIn}
               />
             </div>

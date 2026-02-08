@@ -2,11 +2,13 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { aiService } from '../services/ai';
 import { useCars } from '../context/CarContext';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 const AIChatAssistant: React.FC = () => {
+  const { config } = useSiteConfig();
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<{ role: 'user' | 'ai'; text: string }[]>([
-    { role: 'ai', text: 'Welcome to AutoSphere. I am your concierge. How can I assist with your luxury automotive search today?' }
+    { role: 'ai', text: `Welcome to ${config.siteName}. I am your concierge. How can I assist with your luxury automotive search today?` }
   ]);
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -28,12 +30,11 @@ const AIChatAssistant: React.FC = () => {
     setIsTyping(true);
 
     try {
-      // Truncate summary to keep the payload size manageable and avoid environment timeouts/aborts
       const inventorySummary = cars.length > 0 
         ? cars.slice(0, 15).map(c => `${c.make} ${c.model} (${c.year}) for $${c.price}`).join(', ')
         : "Currently updating our private collection...";
         
-      const aiResponse = await aiService.getCarAdvice(userMsg, inventorySummary);
+      const aiResponse = await aiService.getCarAdvice(userMsg, inventorySummary, config.siteName);
       
       setMessages(prev => [...prev, { role: 'ai', text: aiResponse || 'Our concierge service is currently undergoing maintenance.' }]);
     } catch (error) {

@@ -1,7 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { dbService } from '../services/database';
+import { useSiteConfig } from '../context/SiteConfigContext';
 
 const COUNTRY_DATA: Record<string, string[]> = {
   "United States": ["Alabama", "Alaska", "Arizona", "Arkansas", "California", "Colorado", "Connecticut", "Delaware", "Florida", "Georgia", "Hawaii", "Idaho", "Illinois", "Indiana", "Iowa", "Kansas", "Kentucky", "Louisiana", "Maine", "Maryland", "Massachusetts", "Michigan", "Minnesota", "Mississippi", "Missouri", "Montana", "Nebraska", "Nevada", "New Hampshire", "New Jersey", "New Mexico", "New York", "North Carolina", "North Dakota", "Ohio", "Oklahoma", "Oregon", "Pennsylvania", "Rhode Island", "South Carolina", "South Dakota", "Tennessee", "Texas", "Utah", "Vermont", "Virginia", "Washington", "West Virginia", "Wisconsin", "Wyoming"],
@@ -77,6 +79,7 @@ const COUNTRY_DATA: Record<string, string[]> = {
 };
 
 const Register: React.FC = () => {
+  const { config, isLoading: configLoading } = useSiteConfig();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -98,7 +101,6 @@ const Register: React.FC = () => {
     setFormData(prev => ({ 
       ...prev, 
       [name]: value,
-      // If country changes, reset state
       ...(name === 'country' ? { state: '' } : {}) 
     }));
   };
@@ -122,7 +124,6 @@ const Register: React.FC = () => {
     setEmailError('');
 
     try {
-      // Check for existing identity in the registry
       const users = await dbService.getUsers();
       const existingUser = users.find(u => u.email.toLowerCase() === formData.email.toLowerCase());
 
@@ -132,7 +133,6 @@ const Register: React.FC = () => {
         return;
       }
       
-      // Determine Role
       let role: 'USER' | 'ADMIN' | 'DEALER' = 'USER';
       if (formData.email.toLowerCase().startsWith('admin')) role = 'ADMIN';
       if (formData.email.toLowerCase().startsWith('dealer')) role = 'DEALER';
@@ -142,7 +142,7 @@ const Register: React.FC = () => {
         id: userId,
         name: `${formData.firstName} ${formData.lastName}`,
         email: formData.email,
-        password: formData.password, // Persisting password for strict login check
+        password: formData.password,
         role: role,
         isVerified: false,
         joinedAt: new Date().toISOString(),
@@ -152,11 +152,8 @@ const Register: React.FC = () => {
         }
       };
 
-      // Save to Firebase
       await dbService.saveUser(userId, userData as any);
-      // Login locally
       login(role, userData as any);
-      // Success redirection
       navigate('/register-success');
     } catch (error) {
       console.error("Registration sync failed:", error);
@@ -170,7 +167,7 @@ const Register: React.FC = () => {
     <div className="min-h-screen bg-black flex items-center justify-center px-6 py-20">
       <div className="max-w-2xl w-full glass p-10 md:p-16 rounded-[3rem] border-white/5 shadow-2xl">
         <div className="text-center mb-12">
-          <Link to="/" className="text-2xl font-bold tracking-tighter gradient-text uppercase block mb-4">AutoSphere</Link>
+          <Link to="/" className="text-2xl font-bold tracking-tighter gradient-text uppercase block mb-4">{configLoading ? 'Loading...' : config.siteName}</Link>
           <h1 className="text-3xl font-bold uppercase tracking-tighter">Membership Application</h1>
           <p className="text-zinc-500 text-sm mt-2 uppercase tracking-widest">Join our exclusive global network of collectors.</p>
         </div>

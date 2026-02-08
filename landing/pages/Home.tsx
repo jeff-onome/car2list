@@ -1,5 +1,5 @@
 
-import React, { useEffect, useRef, useMemo } from 'react';
+import React, { useEffect, useRef, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useCars } from '../../context/CarContext';
 import { useSiteConfig } from '../../context/SiteConfigContext';
@@ -18,6 +18,14 @@ const Home: React.FC = () => {
   const heroRef = useRef(null);
   const textRef = useRef<HTMLDivElement>(null);
   const bgRef = useRef<HTMLDivElement>(null);
+  
+  // Track current time to handle automatic deal expiration without page refresh
+  const [now, setNow] = useState(Date.now());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     if (!carsLoading && !configLoading && typeof gsap !== 'undefined') {
@@ -82,6 +90,12 @@ const Home: React.FC = () => {
   }, [cars]);
 
   const deal = config.dealOfTheWeek;
+
+  // Logic to determine if the deal is both manually active and not yet expired
+  const isDealVisible = useMemo(() => {
+    if (!deal || !deal.isActive) return false;
+    return new Date(deal.endTime).getTime() > now;
+  }, [deal, now]);
 
   if (carsLoading || configLoading) return <LoadingScreen />;
 
@@ -188,8 +202,8 @@ const Home: React.FC = () => {
         </section>
       ))}
 
-      {/* Deal of the Week */}
-      {deal.isActive && (
+      {/* Deal of the Week - Automatically hidden when expired or inactive */}
+      {isDealVisible && (
         <section className="py-24 bg-black border-y border-white/5 overflow-hidden">
           <div className="max-w-7xl mx-auto px-6 reveal">
              <div className="glass rounded-[3rem] overflow-hidden flex flex-col lg:flex-row items-stretch border-white/10 shadow-[0_0_50px_rgba(255,255,255,0.05)]">
@@ -217,7 +231,10 @@ const Home: React.FC = () => {
                       <CountdownTimer endTime={deal.endTime} />
                    </div>
                    <div className="flex flex-col sm:flex-row gap-4">
-                      <Link to="/inventory" className="flex-grow text-center bg-white text-black px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 transition-all shadow-xl">
+                      <Link 
+                        to={deal.carId ? `/car/${deal.carId}` : '/inventory'} 
+                        className="flex-grow text-center bg-white text-black px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-zinc-200 transition-all shadow-xl"
+                      >
                          Inquire Now
                       </Link>
                       <Link to="/inventory" className="flex-grow text-center border border-white/10 px-10 py-5 rounded-full font-bold uppercase tracking-widest text-xs hover:bg-white/5 transition-all">

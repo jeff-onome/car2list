@@ -10,7 +10,7 @@ const About: React.FC = () => {
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6">
       <div className="max-w-4xl mx-auto space-y-16">
         <div className="text-center space-y-6">
-          <span className="text-xs uppercase tracking-[0.5em] text-zinc-500">Established 1994</span>
+          <span className="text-xs uppercase tracking-[0.5em] text-zinc-500">Curated by {config.siteName}</span>
           <h1 className="text-5xl md:text-7xl font-bold uppercase tracking-tighter">The Pursuit of Perfection</h1>
           <p className="text-xl text-zinc-400 font-light leading-relaxed">
             {aboutPage.heroText}

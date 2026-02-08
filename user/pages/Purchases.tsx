@@ -59,7 +59,7 @@ const Purchases: React.FC = () => {
           
           <div style="margin-top: 40px;">
              <p style="font-size: 0.6rem; color: #3f3f46; max-width: 500px; margin: 0 auto; line-height: 1.6; font-style: italic;">
-                Issued by the AutoSphere Curation Group. This document is a digital representation of the master entry in the AutoSphere global distributed ledger. Authorized for private display and provenance verification.
+                Issued by the ${config.siteName} Curation Group. This document is a digital representation of the master entry in the ${config.siteName} global distributed ledger.
              </p>
              <div style="margin-top: 30px; display: flex; justify-content: center; align-items: center; gap: 40px;">
                 <div style="text-align: center;">
