@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import Swal from 'https://esm.sh/sweetalert2@11';
@@ -164,7 +165,7 @@ const ManageUsers: React.FC = () => {
           const msg = msgInput.value;
           if (!msg) return;
           
-          await dbService.createNotification(user.id, {
+          await dbService.sendDirectAdminMessage(user.id, user.name, {
             title: 'Administrative Message',
             message: msg,
             type: 'info'

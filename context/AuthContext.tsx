@@ -6,6 +6,7 @@ interface AuthContextType {
   user: User | null;
   login: (role: UserRole, userData: User) => void;
   logout: () => void;
+  updateUserData: (updates: Partial<User>) => void;
   isAuthenticated: boolean;
 }
 
@@ -24,6 +25,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.removeItem('autosphere_user');
   };
 
+  const updateUserData = (updates: Partial<User>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    setUser(updatedUser);
+    localStorage.setItem('autosphere_user', JSON.stringify(updatedUser));
+  };
+
   useEffect(() => {
     const stored = localStorage.getItem('autosphere_user');
     if (stored) {
@@ -32,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, isAuthenticated: !!user }}>
+    <AuthContext.Provider value={{ user, login, logout, updateUserData, isAuthenticated: !!user }}>
       {children}
     </AuthContext.Provider>
   );

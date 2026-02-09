@@ -1,7 +1,7 @@
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
 import { getDatabase, ref, set, get, push, onValue, update, remove } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-database.js";
-import { Car, SiteConfig, User, Rental, Payment, SecurityLog } from "../types";
+import { Car, SiteConfig, User, Rental, Payment, SecurityLog, ContactMessage } from "../types";
 
 const firebaseConfig = {
   apiKey: "AIzaSyA7Q4VwibeVMWwKH9mJw6YZqfRc8RfaZLU",
@@ -141,6 +141,24 @@ export const dbService = {
     await update(ref(db, `payments/${pid}`), { status });
   },
 
+  // --- Contact Messages ---
+  async submitContactMessage(message: Omit<ContactMessage, 'id' | 'timestamp' | 'read'>) {
+    const newRef = push(ref(db, 'contact_messages'));
+    await set(newRef, { ...message, id: newRef.key, timestamp: new Date().toISOString(), read: false });
+    return newRef.key;
+  },
+  subscribeToContactMessages(callback: (messages: ContactMessage[]) => void) {
+    return onValue(ref(db, 'contact_messages'), (snap) => {
+      if (snap.exists()) {
+        const data = snap.val();
+        callback(Object.keys(data).map(k => ({ ...data[k], id: k })).reverse());
+      } else callback([]);
+    });
+  },
+  async deleteContactMessage(id: string) {
+    await remove(ref(db, `contact_messages/${id}`));
+  },
+
   // --- Notifications ---
   subscribeToNotifications(uid: string, callback: (notifs: any[]) => void) {
     return onValue(ref(db, `notifications/${uid}`), (snap) => {
@@ -162,9 +180,56 @@ export const dbService = {
       ? users 
       : users.filter(u => u.role === 'DEALER');
     
+    const timestamp = new Date().toISOString();
+    
+    // Log broadcast centrally
+    await push(ref(db, 'broadcast_history'), {
+      ...n,
+      target,
+      timestamp,
+      recipientCount: recipients.length
+    });
+
     for (const u of recipients) {
       await this.createNotification(u.id, n);
     }
+  },
+  async sendDirectAdminMessage(uid: string, recipientName: string, n: { title: string; message: string; type: 'info' | 'success' | 'warning' }) {
+    const timestamp = new Date().toISOString();
+    
+    // Log direct message centrally
+    await push(ref(db, 'direct_message_history'), {
+      ...n,
+      recipientId: uid,
+      recipientName,
+      timestamp
+    });
+
+    await this.createNotification(uid, n);
+  },
+  subscribeToBroadcastHistory(callback: (history: any[]) => void) {
+    return onValue(ref(db, 'broadcast_history'), (snap) => {
+      if (snap.exists()) callback(Object.keys(snap.val()).map(k => ({ ...snap.val()[k], id: k })).reverse());
+      else callback([]);
+    });
+  },
+  subscribeToDirectMessageHistory(callback: (history: any[]) => void) {
+    return onValue(ref(db, 'direct_message_history'), (snap) => {
+      if (snap.exists()) callback(Object.keys(snap.val()).map(k => ({ ...snap.val()[k], id: k })).reverse());
+      else callback([]);
+    });
+  },
+  async updateBroadcast(id: string, updates: any) {
+    await update(ref(db, `broadcast_history/${id}`), updates);
+  },
+  async deleteBroadcast(id: string) {
+    await remove(ref(db, `broadcast_history/${id}`));
+  },
+  async updateDirectMessage(id: string, updates: any) {
+    await update(ref(db, `direct_message_history/${id}`), updates);
+  },
+  async deleteDirectMessage(id: string) {
+    await remove(ref(db, `direct_message_history/${id}`));
   },
   async markNotificationRead(uid: string, nid: string) { await update(ref(db, `notifications/${uid}/${nid}`), { read: true }); },
   async clearUserNotifications(uid: string) { await remove(ref(db, `notifications/${uid}`)); },
@@ -203,36 +268,39 @@ export const dbService = {
   // --- System Utility ---
   async forceClearMonetaryValues() {
     const updates: Record<string, any> = {};
-
-    // 1. Reset all car prices
     const carsSnap = await get(ref(db, 'cars'));
     if (carsSnap.exists()) {
       const cars = carsSnap.val();
-      Object.keys(cars).forEach(id => {
-        updates[`cars/${id}/price`] = 0;
-      });
+      Object.keys(cars).forEach(id => { updates[`cars/${id}/price`] = 0; });
     }
-
-    // 2. Reset all rental total prices
     const rentalsSnap = await get(ref(db, 'rentals'));
     if (rentalsSnap.exists()) {
       const rentals = rentalsSnap.val();
-      Object.keys(rentals).forEach(id => {
-        updates[`rentals/${id}/totalPrice`] = 0;
-      });
+      Object.keys(rentals).forEach(id => { updates[`rentals/${id}/totalPrice`] = 0; });
     }
-
-    // 3. Reset all payment amounts
     const paymentsSnap = await get(ref(db, 'payments'));
     if (paymentsSnap.exists()) {
       const payments = paymentsSnap.val();
-      Object.keys(payments).forEach(id => {
-        updates[`payments/${id}/amount`] = 0;
-      });
+      Object.keys(payments).forEach(id => { updates[`payments/${id}/amount`] = 0; });
     }
+    if (Object.keys(updates).length > 0) await update(ref(db), updates);
+  },
 
-    if (Object.keys(updates).length > 0) {
-      await update(ref(db), updates);
-    }
+  async clearAllRentals() {
+    await remove(ref(db, 'rentals'));
+  },
+
+  async clearAllPayments() {
+    await remove(ref(db, 'payments'));
+  },
+
+  async clearAllCars() {
+    await remove(ref(db, 'cars'));
+  },
+
+  async clearAllIdentities() {
+    // Note: This wipes the users node. 
+    // In a real app we might want to keep the current admin session, but here we satisfy the prompt.
+    await remove(ref(db, 'users'));
   }
 };

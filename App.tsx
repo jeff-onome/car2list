@@ -51,6 +51,10 @@ import RentalDetail from './superadmin/pages/RentalDetail';
 import PaymentManagement from './superadmin/pages/PaymentManagement';
 import AddCarAdmin from './superadmin/pages/AddCar';
 import AdminCarsList from './superadmin/pages/AdminCarsList';
+import BoughtCars from './superadmin/pages/BoughtCars';
+import MessageHistory from './superadmin/pages/MessageHistory';
+import InquiryList from './superadmin/pages/InquiryList';
+import InquiryDetail from './superadmin/pages/InquiryDetail';
 
 // Common
 import Security from './common/pages/Security';
@@ -134,6 +138,10 @@ const App: React.FC = () => {
                           <Route path="payments" element={<PaymentManagement />} />
                           <Route path="add-car" element={<AddCarAdmin />} />
                           <Route path="cars-list" element={<AdminCarsList />} />
+                          <Route path="bought-cars" element={<BoughtCars />} />
+                          <Route path="message-history" element={<MessageHistory />} />
+                          <Route path="inquiry" element={<InquiryList />} />
+                          <Route path="inquiry/:id" element={<InquiryDetail />} />
                           <Route path="*" element={<Navigate to="dashboard" replace />} />
                         </Routes>
                       </PortalLayout>

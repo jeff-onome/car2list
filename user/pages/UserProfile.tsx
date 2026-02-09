@@ -1,9 +1,94 @@
-import React from 'react';
+
+import React, { useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { Link } from 'react-router-dom';
+import Swal from 'https://esm.sh/sweetalert2@11';
+import { dbService } from '../../services/database';
+import { storageService } from '../../services/storage';
 
 const UserProfile: React.FC = () => {
-  const { user } = useAuth();
+  const { user, updateUserData } = useAuth();
+  const [isUpdating, setIsUpdating] = useState(false);
+
+  const handleEditIdentity = async () => {
+    if (!user) return;
+
+    const { value: formValues } = await Swal.fire({
+      title: '<span style="text-transform: uppercase; font-size: 1.25rem;">Edit Identity</span>',
+      html: `
+        <div style="text-align: left; padding: 1rem; font-family: Inter, sans-serif; color: #a1a1aa;">
+          <div style="margin-bottom: 1.5rem;">
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Full Name</label>
+            <input id="swal-name" class="swal2-input" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: white; border-radius: 1rem;" value="${user.name}">
+          </div>
+          <div>
+            <label style="display: block; font-size: 9px; text-transform: uppercase; color: #71717a; margin-bottom: 0.5rem; letter-spacing: 0.1em;">Profile Image (Strict Validation)</label>
+            <input id="swal-avatar" type="file" class="swal2-file" style="width: 100%; margin: 0; background: #18181b; border: 1px solid #27272a; color: #71717a; border-radius: 1rem; padding: 10px;" accept="image/jpeg,image/png,image/webp">
+          </div>
+          <p style="font-size: 9px; color: #52525b; margin-top: 1rem; text-transform: uppercase; letter-spacing: 0.05em;">Security: Max 5MB. JPEG, PNG, WEBP only.</p>
+        </div>
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'SAVE CHANGES',
+      background: '#0a0a0a',
+      color: '#fff',
+      customClass: {
+        popup: 'glass rounded-[2rem] border border-white/10 shadow-2xl',
+        confirmButton: 'bg-white text-black px-10 py-4 rounded-full font-bold text-[10px] uppercase tracking-widest'
+      },
+      preConfirm: async () => {
+        const name = (document.getElementById('swal-name') as HTMLInputElement).value;
+        const avatarFile = (document.getElementById('swal-avatar') as HTMLInputElement).files?.[0];
+        if (!name) return Swal.showValidationMessage('Name is required');
+        
+        if (avatarFile) {
+          const validation = await storageService.validateFile(avatarFile);
+          if (!validation.valid) {
+            Swal.showValidationMessage(validation.error!);
+            return false;
+          }
+        }
+        
+        return { name, avatarFile };
+      }
+    });
+
+    if (formValues) {
+      setIsUpdating(true);
+      try {
+        let avatarUrl = user.avatar;
+        if (formValues.avatarFile) {
+          avatarUrl = await storageService.uploadImage(formValues.avatarFile) || user.avatar;
+        }
+
+        const updates = {
+          name: formValues.name,
+          avatar: avatarUrl
+        };
+
+        await dbService.updateUser(user.id, updates);
+        updateUserData(updates);
+
+        Swal.fire({
+          title: 'Identity Updated',
+          text: 'Your profile has been successfully synchronized.',
+          icon: 'success',
+          background: '#0a0a0a',
+          color: '#fff'
+        });
+      } catch (error: any) {
+        Swal.fire({
+          title: 'Security Alert',
+          text: error.message || 'Failed to synchronize with database.',
+          icon: 'error',
+          background: '#0a0a0a',
+          color: '#fff'
+        });
+      } finally {
+        setIsUpdating(false);
+      }
+    }
+  };
 
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6 md:px-12">
@@ -20,7 +105,7 @@ const UserProfile: React.FC = () => {
           
           <div className="text-center md:text-left space-y-4 relative z-10 flex-grow">
             <div>
-               <h1 className="text-5xl md:text-6xl font-bold uppercase tracking-tighter">{user?.name}</h1>
+               <h1 className="text-lg md:text-xl font-bold uppercase tracking-tighter">{user?.name}</h1>
                <p className="text-zinc-500 uppercase tracking-[0.4em] text-[10px] font-bold mt-2">Member Tier: <span className="text-white">Global Elite</span></p>
             </div>
             
@@ -29,15 +114,18 @@ const UserProfile: React.FC = () => {
                 Member ID: {user?.id.slice(-8).toUpperCase()}
               </div>
               <div className="bg-white/5 border border-white/10 px-6 py-2 rounded-full text-[9px] uppercase tracking-widest font-bold text-zinc-400">
-                Account: {user?.role}
-              </div>
-              <div className="bg-white/5 border border-white/10 px-6 py-2 rounded-full text-[9px] uppercase tracking-widest font-bold text-zinc-400">
                 Status: {user?.isVerified ? 'VERIFIED' : 'PENDING'}
               </div>
             </div>
 
             <div className="flex gap-4 pt-8 justify-center md:justify-start">
-              <button className="bg-white text-black px-10 py-3.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl">Edit Identity</button>
+              <button 
+                onClick={handleEditIdentity}
+                disabled={isUpdating}
+                className="bg-white text-black px-10 py-3.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-zinc-200 transition-all shadow-xl disabled:opacity-50"
+              >
+                {isUpdating ? 'SYNCING...' : 'Edit Identity'}
+              </button>
               <Link to="/user/security" className="border border-white/10 px-10 py-3.5 rounded-full text-[10px] font-bold uppercase tracking-widest hover:bg-white/5 transition-all flex items-center justify-center">Manage Security</Link>
             </div>
           </div>
@@ -79,11 +167,9 @@ const UserProfile: React.FC = () => {
                     Identity verification allows for bidding on private auctions and high-limit capital financing.
                  </p>
                  <div className="pt-4">
-                    {user?.isVerified ? (
-                       <button className="w-full bg-white/5 border border-white/10 py-3 rounded-full text-[9px] uppercase font-bold tracking-widest hover:bg-white/10 transition-all">Re-validate Documents</button>
-                    ) : (
-                       <Link to="/user/verify" className="block w-full text-center bg-white text-black py-3 rounded-full text-[9px] uppercase font-bold tracking-widest hover:bg-zinc-200 transition-all">Complete KYC Now</Link>
-                    )}
+                    <Link to="/user/verify" className="block w-full text-center bg-white/5 border border-white/10 py-3 rounded-full text-[9px] uppercase font-bold tracking-widest hover:bg-white/10 transition-all">
+                      {user?.isVerified ? 'Re-validate Documents' : 'Complete KYC Now'}
+                    </Link>
                  </div>
               </div>
             </div>

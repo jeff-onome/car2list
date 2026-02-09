@@ -57,14 +57,23 @@ const AddCar: React.FC = () => {
     );
   }
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files) return;
-    Array.from(files).forEach((file: File) => {
+    
+    // Explicitly cast Array.from(files) to File[] to fix 'unknown' type errors on line 65, 67, and 73
+    for (const file of Array.from(files) as File[]) {
+      const validation = await storageService.validateFile(file);
+      if (!validation.valid) {
+        Swal.fire('Security Alert', `File "${file.name}" rejected: ${validation.error}`, 'error');
+        continue;
+      }
+      
       const reader = new FileReader();
       reader.onloadend = () => setImages(prev => [...prev, { file, preview: reader.result as string }]);
       reader.readAsDataURL(file);
-    });
+    }
+    e.target.value = ''; // Reset input
   };
 
   const removeImage = (index: number) => setImages(prev => prev.filter((_, i) => i !== index));
@@ -83,7 +92,10 @@ const AddCar: React.FC = () => {
 
     setIsSubmitting(true);
     try {
-      const uploadPromises = images.map(async (img) => img.file ? await storageService.uploadImage(img.file) : null);
+      const uploadPromises = images.map(async (img) => {
+        if (!img.file) return null;
+        return await storageService.uploadImage(img.file);
+      });
       const uploadedUrls = (await Promise.all(uploadPromises)).filter(url => url !== null) as string[];
 
       const carData = {
@@ -115,8 +127,8 @@ const AddCar: React.FC = () => {
 
         Swal.fire({ title: 'Submission Logged', icon: 'success', background: '#111', color: '#fff' }).then(() => navigate('/dealer/dashboard'));
       }
-    } catch (error) {
-      Swal.fire({ title: 'System Error', icon: 'error', background: '#111', color: '#fff' });
+    } catch (error: any) {
+      Swal.fire({ title: 'Security Error', text: error.message || 'Action failed.', icon: 'error', background: '#111', color: '#fff' });
     } finally {
       setIsSubmitting(false);
     }
@@ -186,8 +198,8 @@ const AddCar: React.FC = () => {
             <div className="glass p-10 rounded-[3rem] border-white/5 shadow-2xl">
               <label className="block w-full cursor-pointer group">
                 <div className="border-2 border-dashed border-white/10 rounded-2xl p-10 text-center hover:bg-white/5 transition-all">
-                  <span className="text-[10px] uppercase font-bold text-zinc-500">Select Images</span>
-                  <input type="file" multiple className="hidden" onChange={handleImageUpload} />
+                  <span className="text-[10px] uppercase font-bold text-zinc-500">Secure Asset Upload</span>
+                  <input type="file" multiple className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} />
                 </div>
               </label>
               <div className="grid grid-cols-3 gap-3 mt-6">

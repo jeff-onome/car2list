@@ -188,7 +188,6 @@ const Header: React.FC = () => {
               <div className="absolute right-0 mt-3 w-56 bg-zinc-950 rounded-2xl border border-white/10 shadow-2xl py-2 overflow-hidden animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-4 py-3 border-b border-white/5 mb-1 bg-zinc-950">
                   <p className="text-xs font-bold text-white truncate">{user?.name}</p>
-                  <p className="text-[9px] text-zinc-500 uppercase tracking-widest mt-0.5">{user?.role} Account</p>
                 </div>
                 
                 <div className="bg-zinc-950">

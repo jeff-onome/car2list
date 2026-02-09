@@ -95,6 +95,16 @@ export interface Payment {
   itemDescription: string;
 }
 
+export interface ContactMessage {
+  id: string;
+  name: string;
+  email: string;
+  interest: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+}
+
 export interface CryptoWallet {
   label: string;
   address: string;

@@ -56,8 +56,16 @@ const Verification: React.FC = () => {
     if (ctx) {
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
       const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-      fetch(dataUrl).then(res => res.blob()).then(blob => {
+      fetch(dataUrl).then(res => res.blob()).then(async (blob) => {
         const file = new File([blob], "selfie_capture.jpg", { type: "image/jpeg" });
+        
+        // Immediate validation of captured biometric data
+        const validation = await storageService.validateFile(file);
+        if (!validation.valid) {
+          Swal.fire('Capture Rejected', validation.error, 'error');
+          return;
+        }
+
         setKycData(prev => ({ ...prev, selfie: { file, preview: dataUrl } }));
         if (cameraStream) {
           cameraStream.getTracks().forEach(track => track.stop());
@@ -67,9 +75,16 @@ const Verification: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>, type: keyof typeof kycData) => {
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>, type: keyof typeof kycData) => {
     const file = e.target.files?.[0];
     if (file) {
+      const validation = await storageService.validateFile(file);
+      if (!validation.valid) {
+        Swal.fire('Security Alert', validation.error, 'error');
+        e.target.value = '';
+        return;
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         setKycData(prev => ({ ...prev, [type]: { file, preview: reader.result as string } }));
@@ -119,27 +134,12 @@ const Verification: React.FC = () => {
         confirmButtonColor: '#fff'
       }).then(() => navigate(user.role === 'DEALER' ? '/dealer/dashboard' : '/user/overview'));
 
-    } catch (error) {
-      Swal.fire('Upload Failed', 'Synchronization error occurred.', 'error');
+    } catch (error: any) {
+      Swal.fire('Security Error', error.message || 'Synchronization error occurred.', 'error');
     } finally {
       setIsUploading(false);
     }
   };
-
-  if (user?.isVerified) {
-    return (
-      <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6 flex items-center justify-center">
-        <div className="text-center space-y-6 max-w-md glass p-12 rounded-[3rem] border-white/5">
-           <div className="w-20 h-20 bg-green-500/20 text-green-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <svg className="w-10 h-10" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" /></svg>
-           </div>
-           <h1 className="text-3xl font-bold uppercase tracking-tighter">Cleared for Access</h1>
-           <p className="text-zinc-500 text-xs uppercase tracking-widest leading-relaxed">Identity verified at Tier 3 tier.</p>
-           <button onClick={() => navigate(-1)} className="bg-white text-black px-8 py-3 rounded-full font-bold text-[10px] uppercase tracking-widest w-full">Return to Portal</button>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen bg-black text-white pt-24 pb-20 px-6">
@@ -237,7 +237,7 @@ const UploadCard = ({ title, desc, preview, onFile }: any) => (
           <img src={preview} className="absolute inset-0 w-full h-full object-cover" alt="Preview" />
           <label className="absolute inset-0 cursor-pointer flex items-center justify-center bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity">
             <span className="bg-white text-black px-6 py-2 rounded-full font-bold text-[8px] uppercase tracking-widest">Replace</span>
-            <input type="file" className="hidden" accept="image/*" onChange={onFile} />
+            <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={onFile} />
           </label>
         </>
       ) : (
@@ -245,7 +245,7 @@ const UploadCard = ({ title, desc, preview, onFile }: any) => (
           <div className="w-10 h-10 bg-white/5 rounded-full flex items-center justify-center border border-white/10 text-zinc-500">
             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" /></svg>
           </div>
-          <input type="file" className="hidden" accept="image/*" onChange={onFile} />
+          <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={onFile} />
         </label>
       )}
     </div>

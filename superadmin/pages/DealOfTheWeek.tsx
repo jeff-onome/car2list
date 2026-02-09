@@ -23,28 +23,35 @@ const DealOfTheWeekAdmin: React.FC = () => {
     const file = e.target.files?.[0];
     if (file) {
       setIsUploading(true);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
+      try {
+        const validation = await storageService.validateFile(file);
+        if (!validation.valid) {
+          throw new Error(validation.error);
+        }
 
-      const url = await storageService.uploadImage(file);
-      if (url) {
-        setDeal(prev => ({ ...prev, image: url }));
-        setImagePreview(url);
-        Swal.fire({
-          toast: true,
-          position: 'top-end',
-          icon: 'success',
-          title: 'Asset uploaded',
-          showConfirmButton: false,
-          timer: 2000,
-          background: '#0a0a0a',
-          color: '#fff'
-        });
-      } else {
-        Swal.fire('Upload Error', 'Failed to store image.', 'error');
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          setImagePreview(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+
+        const url = await storageService.uploadImage(file);
+        if (url) {
+          setDeal(prev => ({ ...prev, image: url }));
+          setImagePreview(url);
+          Swal.fire({
+            toast: true,
+            position: 'top-end',
+            icon: 'success',
+            title: 'Asset validated & uploaded',
+            showConfirmButton: false,
+            timer: 2000,
+            background: '#0a0a0a',
+            color: '#fff'
+          });
+        }
+      } catch (error: any) {
+        Swal.fire('Security Alert', error.message || 'Secure upload failed.', 'error');
       }
       setIsUploading(false);
     }
@@ -215,8 +222,8 @@ const DealOfTheWeekAdmin: React.FC = () => {
                 {imagePreview ? <img src={imagePreview} className="w-full h-full object-cover" alt="" /> : <div className="flex items-center justify-center h-full text-zinc-700 text-[9px] uppercase font-bold tracking-widest">No Asset</div>}
                 {isUploading && <div className="absolute inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center text-[10px] text-white font-bold uppercase animate-pulse">Syncing...</div>}
                 <label className="absolute inset-0 cursor-pointer flex items-center justify-center opacity-0 hover:opacity-100 hover:bg-black/40 transition-all">
-                  <span className="bg-white text-black px-6 py-2 rounded-full font-bold text-[8px] uppercase tracking-widest">Replace Asset</span>
-                  <input type="file" className="hidden" onChange={handleImageUpload} disabled={isUploading} />
+                  <span className="bg-white text-black px-6 py-2 rounded-full font-bold text-[8px] uppercase tracking-widest">Replace with Secure Asset</span>
+                  <input type="file" className="hidden" accept="image/jpeg,image/png,image/webp" onChange={handleImageUpload} disabled={isUploading} />
                 </label>
               </div>
             </div>

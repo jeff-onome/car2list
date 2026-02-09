@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { useUserData } from '../context/UserDataContext';
 import { useCars } from '../context/CarContext';
 import { dbService } from '../services/database';
-import { User, Rental, Payment } from '../types';
+import { User, Rental, Payment, ContactMessage } from '../types';
 
 interface SidebarLink {
   name: string;
@@ -22,13 +22,15 @@ const Sidebar: React.FC = () => {
   const [users, setUsers] = useState<User[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
 
   useEffect(() => {
     if (user?.role === 'ADMIN') {
       const u1 = dbService.subscribeToUsers(setUsers);
       const u2 = dbService.subscribeToAllRentals(setRentals);
       const u3 = dbService.subscribeToAllPayments(setPayments);
-      return () => { u1(); u2(); u3(); };
+      const u4 = dbService.subscribeToContactMessages(setContactMessages);
+      return () => { u1(); u2(); u3(); u4(); };
     }
   }, [user?.role]);
 
@@ -41,11 +43,15 @@ const Sidebar: React.FC = () => {
       const kycPending = users.filter(u => u.kycDocuments && (u.kycStatus === 'pending' || !u.kycStatus)).length;
       const rentalPending = rentals.filter(r => r.status === 'Pending').length;
       const paymentPending = payments.filter(p => p.status === 'Pending').length;
+      const inquiryCount = contactMessages.filter(m => !m.read).length;
 
       return [
         ...commonLinks,
         { name: 'Control', path: '/admin/dashboard', icon: 'M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z' },
+        { name: 'Inquiries', path: '/admin/inquiry', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z', badge: inquiryCount, badgeColor: 'bg-blue-500 text-white shadow-[0_0_10px_rgba(59,130,246,0.5)]' },
         { name: 'Cars List', path: '/admin/cars-list', icon: 'M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10' },
+        { name: 'Bought Cars', path: '/admin/bought-cars', icon: 'M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z' },
+        { name: 'Broadcasts', path: '/admin/message-history', icon: 'M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z' },
         { name: 'Identity', path: '/admin/kyc', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z', badge: kycPending, badgeColor: 'bg-white text-black shadow-[0_0_15px_rgba(255,255,255,0.4)]' },
         { name: 'Rentals', path: '/admin/rentals', icon: 'M4 7V4a2 2 0 012-2h12a2 2 0 012 2v3M9 2v4M15 2v4M3 11h18M5 19v2M19 19v2M3 11v8a2 2 0 002 2h14a2 2 0 002-2v-8', badge: rentalPending, badgeColor: 'bg-amber-500 text-black' },
         { name: 'Payments', path: '/admin/payments', icon: 'M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6', badge: paymentPending, badgeColor: 'bg-green-500 text-white' },

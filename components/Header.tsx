@@ -192,7 +192,6 @@ const Header: React.FC = () => {
               <div className="absolute right-0 mt-3 w-56 bg-zinc-950 rounded-2xl border border-white/10 shadow-2xl py-2 animate-in fade-in zoom-in-95 duration-200">
                 <div className="px-4 py-3 border-b border-white/5 mb-1">
                   <p className="text-xs font-bold text-white uppercase tracking-tighter truncate">{user?.name}</p>
-                  <p className="text-[8px] text-zinc-600 uppercase font-bold tracking-widest mt-1">{user?.role} ACCESS</p>
                 </div>
                 <DropdownItem to={user?.role === 'ADMIN' ? '/admin/dashboard' : user?.role === 'DEALER' ? '/dealer/dashboard' : '/user/overview'} icon="M4 6h16M4 12h16M4 18h16" label="Dashboard" onClick={() => setIsDropdownOpen(false)} />
                 <DropdownItem to={getSecurityPath()} icon="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" label="Security" onClick={() => setIsDropdownOpen(false)} />

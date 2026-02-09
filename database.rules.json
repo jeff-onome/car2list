@@ -44,6 +44,20 @@
     "bookings": {
       ".read": true,
       ".write": true
+    },
+    "contact_messages": {
+      ".read": true,
+      ".write": true
+    },
+    "broadcast_history": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["timestamp", "target"]
+    },
+    "direct_message_history": {
+      ".read": true,
+      ".write": true,
+      ".indexOn": ["timestamp", "recipientId"]
     }
   }
 }

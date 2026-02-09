@@ -3,17 +3,19 @@ import React, { useState, useEffect } from 'react';
 import { useCars } from '../../context/CarContext';
 import { dbService } from '../../services/database';
 import { useSiteConfig } from '../../context/SiteConfigContext';
-import { User, Rental, Car, Payment } from '../../types';
-import { Link } from 'react-router-dom';
+import { User, Rental, Car, Payment, ContactMessage } from '../../types';
+import { Link, useNavigate } from 'react-router-dom';
 import LoadingScreen from '../../components/LoadingScreen';
 
 const AdminDashboard: React.FC = () => {
   const { cars, isLoading: carsLoading, getCarById } = useCars();
   const { formatPrice, config, isLoading: configLoading } = useSiteConfig();
+  const navigate = useNavigate();
   const [users, setUsers] = useState<User[]>([]);
   const [bookings, setBookings] = useState<any[]>([]);
   const [rentals, setRentals] = useState<Rental[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [contactMessages, setContactMessages] = useState<ContactMessage[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
@@ -21,6 +23,10 @@ const AdminDashboard: React.FC = () => {
     const unsubUsers = dbService.subscribeToUsers(setUsers);
     const unsubBookings = dbService.subscribeToAllBookings(setBookings);
     const unsubPayments = dbService.subscribeToAllPayments(setPayments);
+    const unsubMessages = dbService.subscribeToContactMessages((msgs) => {
+      // Display only latest 5 inquiries on dashboard as requested
+      setContactMessages(msgs.slice(0, 5));
+    });
     const unsubRentals = dbService.subscribeToAllRentals((data) => {
        setRentals(data);
        setDataLoading(false);
@@ -30,6 +36,7 @@ const AdminDashboard: React.FC = () => {
       unsubBookings();
       unsubRentals();
       unsubPayments();
+      unsubMessages();
     };
   }, []);
 
@@ -45,6 +52,10 @@ const AdminDashboard: React.FC = () => {
 
   const toggleExpand = (id: string) => {
     setExpandedId(expandedId === id ? null : id);
+  };
+
+  const handleInspectInquiry = (msg: ContactMessage) => {
+    navigate(`/admin/inquiry/${msg.id}`);
   };
 
   if (carsLoading || configLoading || dataLoading) return <LoadingScreen />;
@@ -104,7 +115,7 @@ const AdminDashboard: React.FC = () => {
                                 {activity.type === 'Rental' ? (
                                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" /></svg>
                                 ) : (
-                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+                                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 11-8 0 4 4 0 018 0z" /><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                                 )}
                              </div>
                              <div className="overflow-hidden flex-grow">
@@ -185,6 +196,32 @@ const AdminDashboard: React.FC = () => {
 
            {/* Admin Logs / Identity Sidebar */}
            <div className="space-y-6 md:space-y-8">
+              <div className="glass p-8 rounded-[2.5rem] border-white/5">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xs font-bold uppercase tracking-widest text-zinc-400">Inquiry Pulse</h3>
+                  <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse" />
+                </div>
+                <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar">
+                  {contactMessages.map(msg => (
+                    <div 
+                      key={msg.id} 
+                      onClick={() => handleInspectInquiry(msg)}
+                      className="p-3 bg-white/[0.02] border border-white/5 rounded-xl flex justify-between items-center hover:bg-white/[0.05] transition-colors cursor-pointer group"
+                    >
+                      <div className="overflow-hidden">
+                        <p className="text-[10px] font-bold text-white truncate uppercase tracking-tight">{msg.name}</p>
+                        <p className="text-[8px] text-zinc-600 truncate uppercase tracking-widest">{msg.interest || 'General'}</p>
+                      </div>
+                      <svg className="w-3 h-3 text-zinc-700 group-hover:text-white transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                    </div>
+                  ))}
+                  {contactMessages.length === 0 && <p className="text-[9px] text-zinc-700 text-center uppercase py-10 tracking-[0.2em]">Inquiry Log Clear</p>}
+                </div>
+                {contactMessages.length > 0 && (
+                  <Link to="/admin/inquiry" className="block text-center pt-4 text-[8px] uppercase font-bold tracking-widest text-zinc-500 hover:text-white transition-colors">View All Inquiries</Link>
+                )}
+              </div>
+
               <div className="glass p-8 rounded-[2.5rem] border-white/5">
                 <h3 className="text-xs font-bold uppercase tracking-widest mb-6 text-zinc-400">Moderation Queue</h3>
                 <div className="space-y-4 max-h-[300px] overflow-y-auto no-scrollbar">

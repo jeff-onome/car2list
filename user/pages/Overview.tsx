@@ -20,12 +20,8 @@ const Overview: React.FC = () => {
 
   useEffect(() => {
     if (user?.id) {
-      let purchaseUnsub: any;
-      let bookingUnsub: any;
-
       const unsubPurchases = dbService.subscribeToPurchases(user.id, (data) => {
         setPurchases(data);
-        // We only set dataLoading false once both streams have likely emitted or at least one has if the other is empty
         setDataLoading(false);
       });
 
@@ -43,7 +39,6 @@ const Overview: React.FC = () => {
 
   if (carsLoading || configLoading || dataLoading) return <LoadingScreen />;
 
-  // Metrics now use itemType and amount from the Payment interface
   const boughtCount = purchases.filter(p => p.itemType === 'Purchase').length;
   const rentedCount = purchases.filter(p => p.itemType === 'Rental').length;
   const totalSpend = purchases.reduce((acc, p) => acc + (p.amount || 0), 0);
@@ -131,7 +126,7 @@ const Overview: React.FC = () => {
                     <div className="flex items-center gap-4">
                        <div className="w-12 h-12 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-zinc-500 shrink-0 group-hover:text-white transition-colors">
                           {item.amount ? (
-                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
                           ) : (
                             <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
                           )}
@@ -199,10 +194,6 @@ const Overview: React.FC = () => {
             <div className="glass p-6 md:p-8 rounded-2xl md:rounded-[3rem] border-white/5 space-y-4 shadow-xl">
               <h4 className="text-[10px] font-bold uppercase tracking-widest text-zinc-500">Identity Registry</h4>
               <div className="space-y-4">
-                 <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-zinc-400">
-                    <span className="font-medium">Access Tier</span>
-                    <span className="text-white font-bold">{user?.role}</span>
-                 </div>
                  <div className="flex justify-between items-center text-[10px] uppercase tracking-widest text-zinc-400">
                     <span className="font-medium">Registered Since</span>
                     <span className="text-white font-bold">{user?.joinedAt ? new Date(user.joinedAt).getFullYear() : '2024'}</span>
